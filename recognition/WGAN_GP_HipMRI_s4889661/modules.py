@@ -159,3 +159,35 @@ def count_params(model):
 # =============================================================================
 # SELF-TEST: SHAPES, OUTPUT RANGE, PARAMETER COUNTS
 # =============================================================================
+
+if __name__ == "__main__":
+    torch.manual_seed(0)
+    B = 8
+
+    G = Generator()
+    D_dcgan = Discriminator(norm="batch")
+    D_wgan = Discriminator(norm="layer")
+    for m in (G, D_dcgan, D_wgan):
+        m.apply(weights_init)
+
+    # --- Generator: noise -> image of the right shape and range ---------------
+    z = torch.randn(B, Z_DIM)
+    fake = G(z)
+    print("G output:", tuple(fake.shape), f"range [{fake.min():.2f}, {fake.max():.2f}]")
+    assert fake.shape == (B, 1, 128, 64), "generator output shape wrong"
+    assert fake.min() >= -1 and fake.max() <= 1, "tanh range violated"
+
+    # --- Discriminators: image -> one score per sample -------------------------
+    for name, D in (("DCGAN D", D_dcgan), ("WGAN critic", D_wgan)):
+        score = D(fake)
+        print(f"{name} output:", tuple(score.shape))
+        assert score.shape == (B, 1), f"{name} output shape wrong"
+
+    # --- Gradients flow end-to-end (G -> D -> scalar) --------------------------
+    D_dcgan(G(z)).mean().backward()
+    assert all(p.grad is not None for p in G.parameters()), "no gradient reached G"
+
+    # --- Parameter counts (for the README profiling table) ---------------------
+    print(f"Params  G: {count_params(G):,}  D(batch): {count_params(D_dcgan):,}  "
+          f"D(layer): {count_params(D_wgan):,}")
+    print("All modules.py checks passed.")
