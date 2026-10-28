@@ -124,6 +124,43 @@ def dcgan_step(G, D, real, opt_G, opt_D, bce, z_dim, device):
 # OUTPUTS: SAMPLE GRIDS, CHECKPOINTS, PLOTS
 # =============================================================================
 
+@torch.no_grad()
+def save_samples(G, fixed_z, path):
+    """Save an 8x8 grid generated from the SAME noise every epoch."""
+    G.eval()
+    imgs = G(fixed_z)
+    save_image(imgs, path, nrow=8, normalize=True, value_range=(-1, 1))
+    G.train()
+
+
+def save_checkpoint(G, D, opt_G, opt_D, epoch, args, out):
+    """Full state for resuming, plus generator-only weights for predict.py."""
+    torch.save({
+        "epoch": epoch,
+        "G": G.state_dict(), "D": D.state_dict(),
+        "opt_G": opt_G.state_dict(), "opt_D": opt_D.state_dict(),
+        "args": vars(args),
+    }, os.path.join(out, "checkpoint.pt"))
+    torch.save(G.state_dict(), os.path.join(out, "generator.pt"))
+
+
+def plot_losses(history, out):
+    """Plot losses and discriminator confidence over epochs."""
+    epochs = [h["epoch"] for h in history]
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+
+    ax1.plot(epochs, [h["loss_D"] for h in history], label="D loss")
+    ax1.plot(epochs, [h["loss_G"] for h in history], label="G loss")
+    ax1.set_xlabel("epoch"); ax1.set_title("Training losses"); ax1.legend()
+
+    ax2.plot(epochs, [h["D_real"] for h in history], label="D(real)")
+    ax2.plot(epochs, [h["D_fake"] for h in history], label="D(G(z))")
+    ax2.axhline(0.5, ls="--", c="grey", lw=0.8)
+    ax2.set_xlabel("epoch"); ax2.set_title("Discriminator confidence"); ax2.legend()
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(out, "loss_curves.png"), dpi=120)
+    plt.close()
 
 # =============================================================================
 # MAIN TRAINING LOOP
