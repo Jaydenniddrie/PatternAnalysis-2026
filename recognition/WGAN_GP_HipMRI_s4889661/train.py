@@ -84,6 +84,41 @@ def get_device():
 # DCGAN TRAINING STEP (one batch)
 # =============================================================================
 
+def dcgan_step(G, D, real, opt_G, opt_D, bce, z_dim, device):
+    """One DCGAN update: discriminator step, then generator step.
+
+    Returns per-batch statistics for logging.
+    """
+    b = real.size(0)
+    ones = torch.ones(b, 1, device=device)    # "real" targets
+    zeros = torch.zeros(b, 1, device=device)  # "fake" targets
+
+    # --- 1. Discriminator: real -> 1, fake -> 0 -------------------------------
+    z = torch.randn(b, z_dim, device=device)
+    fake = G(z)
+    d_real = D(real)
+    d_fake = D(fake.detach())     # detach: this step must not update G
+    loss_D = bce(d_real, ones) + bce(d_fake, zeros)
+
+    opt_D.zero_grad(set_to_none=True)
+    loss_D.backward()
+    opt_D.step()
+
+    # --- 2. Generator: make D output 1 on fakes (non-saturating loss) ---------
+    # Re-score the same fakes with the just-updated D; gradients flow into G.
+    loss_G = bce(D(fake), ones)
+
+    opt_G.zero_grad(set_to_none=True)
+    loss_G.backward()   # also writes grads into D, but opt_D zeroes them next step
+    opt_G.step()
+
+    return {
+        "loss_D": loss_D.item(),
+        "loss_G": loss_G.item(),
+        # Mean probability D assigns: ideal equilibrium is ~0.5 for both
+        "D_real": torch.sigmoid(d_real).mean().item(),
+        "D_fake": torch.sigmoid(d_fake).mean().item(),
+    }
 
 # =============================================================================
 # OUTPUTS: SAMPLE GRIDS, CHECKPOINTS, PLOTS
