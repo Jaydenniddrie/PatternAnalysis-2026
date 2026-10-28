@@ -65,6 +65,20 @@ def parse_args():
 # REPRODUCIBILITY AND DEVICE
 # =============================================================================
 
+def set_seed(seed):
+    """Seed Python and PyTorch RNGs (CUDA kernels may still be nondeterministic)."""
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+def get_device():
+    """Prefer CUDA (Colab), then Apple MPS (local Mac), then CPU."""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
 
 # =============================================================================
 # DCGAN TRAINING STEP (one batch)
@@ -82,7 +96,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    print(vars(args))
+    set_seed(args.seed)
+    device = get_device()
+    print(f"Device: {device}")
 
 
 if __name__ == "__main__":
