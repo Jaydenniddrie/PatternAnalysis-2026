@@ -170,6 +170,75 @@ def main():
     args = parse_args()
     set_seed(args.seed)
     device = get_device()
+
+    run_name = args.run_name or f"{args.model}_seed{args.seed}"
+    out = os.path.join(args.out_dir, run_name)
+    os.makedirs(os.path.join(out, "samples"), exist_ok=True)
+
+    # --- Data: TRAIN split only (validate/test reserved for the audit) -------
+    data = load_split(args.root, "train", max_files=args.max_files,
+                      cache_dir=args.cache_dir)
+    loader = get_loader(data["images"], batch_size=args.batch_size)
+    assert len(loader) > 0, "dataset smaller than one batch; raise --max-files"
+    print(f"Device: {device} | train images: {len(data['images'])} "
+          f"| batches/epoch: {len(loader)}")
+
+    # --- Models and optimisers ------------------------------------------------
+    G = Generator(args.z_dim).to(device)
+    D = Discriminator(norm="batch").to(device)
+    G.apply(weights_init)
+    D.apply(weights_init)
+    opt_G = torch.optim.Adam(G.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
+    opt_D = torch.optim.Adam(D.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
+    bce = nn.BCEWithLogitsLoss()   # sigmoid + BCE in one numerically stable op
+
+    # Fixed noise: the same 64 vectors every epoch, to watch samples evolve
+    fixed_z = torch.randn(64, args.z_dim, device=device)
+
+    # --- Training --------------------------------------------------------------
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats()
+    history = []
+    t_start = time.time()
+
+    for epoch in range(1, args.epochs + 1):
+        t_epoch = time.time()
+        sums, n = {}, 0
+
+        for (real,) in loader:
+            stats = dcgan_step(G, D, real.to(device), opt_G, opt_D, bce,
+                               args.z_dim, device)
+            for k, v in stats.items():
+                sums[k] = sums.get(k, 0.0) + v
+            n += 1
+
+        # Average batch statistics over the epoch
+        record = {k: v / n for k, v in sums.items()}
+        record["epoch"] = epoch
+        record["epoch_time_s"] = time.time() - t_epoch
+        history.append(record)
+        print(f"Epoch {epoch:3d}/{args.epochs} | D {record['loss_D']:.3f} "
+              f"| G {record['loss_G']:.3f} | D(x) {record['D_real']:.2f} "
+              f"| D(G(z)) {record['D_fake']:.2f} | {record['epoch_time_s']:.1f}s")
+
+        save_samples(G, fixed_z, os.path.join(out, "samples", f"epoch_{epoch:03d}.png"))
+        save_checkpoint(G, D, opt_G, opt_D, epoch, args, out)
+
+    # --- Run summary: resource profiling for the README -----------------------
+    summary = {
+        "model": args.model,
+        "total_time_s": time.time() - t_start,
+        "peak_vram_gb": (torch.cuda.max_memory_allocated() / 1024**3
+                         if device.type == "cuda" else None),
+        "params_G": count_params(G),
+        "params_D": count_params(D),
+        "device": str(device),
+        "args": vars(args),
+    }
+    with open(os.path.join(out, "history.json"), "w") as f:
+        json.dump({"summary": summary, "history": history}, f, indent=2)
+    plot_losses(history, out)
+    print(f"Done in {summary['total_time_s']:.1f}s. Outputs in {out}/")
     print(f"Device: {device}")
 
 
