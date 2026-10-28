@@ -82,6 +82,56 @@ class Generator(nn.Module):
 # DISCRIMINATOR / CRITIC
 # =============================================================================
 
+def _norm_layer(norm, ch):
+    """Normalisation layer choice.
+
+    batch -> DCGAN discriminator (standard).
+    layer -> WGAN-GP critic. GroupNorm with 1 group normalises each sample
+             over (C, H, W), i.e. LayerNorm; it keeps samples independent,
+             which the gradient penalty requires.
+    """
+    if norm == "batch":
+        return nn.BatchNorm2d(ch)
+    if norm == "layer":
+        return nn.GroupNorm(1, ch)
+    raise ValueError(f"Unknown norm: {norm}")
+
+
+def _down_block(in_ch, out_ch, norm):
+    """Strided conv that halves H and W, then normalisation + LeakyReLU."""
+    return nn.Sequential(
+        nn.Conv2d(in_ch, out_ch, kernel_size=4, stride=2, padding=1, bias=False),
+        _norm_layer(norm, out_ch),
+        nn.LeakyReLU(0.2, inplace=True),
+    )
+
+
+class Discriminator(nn.Module):
+    """Maps an image [B, 1, 128, 64] to a score [B, 1].
+
+    Outputs a raw logit (no sigmoid): for DCGAN the sigmoid lives inside
+    BCEWithLogitsLoss; for WGAN-GP the critic score is unbounded by design.
+    """
+
+    def __init__(self, base=BASE_CH, norm="batch"):
+        super().__init__()
+        self.net = nn.Sequential(
+            # --- first layer: no normalisation (DCGAN convention) -------------
+            nn.Conv2d(IMG_CHANNELS, base // 2, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),            # [B, 32, 64, 32]
+
+            # --- downsample, doubling channels each time ----------------------
+            _down_block(base // 2, base, norm),         # [B, 64, 32, 16]
+            _down_block(base, base * 2, norm),          # [B, 128, 16, 8]
+            _down_block(base * 2, base * 4, norm),      # [B, 256, 8, 4]
+            _down_block(base * 4, base * 8, norm),      # [B, 512, 4, 2]
+
+            # --- collapse the 4x2 map to a single score -----------------------
+            nn.Conv2d(base * 8, 1, kernel_size=START_HW, stride=1, padding=0, bias=False),
+        )                                               # [B, 1, 1, 1]
+
+    def forward(self, x):
+        return self.net(x).view(x.size(0), 1)           # [B, 1]
 
 # =============================================================================
 # WEIGHT INITIALISATION
