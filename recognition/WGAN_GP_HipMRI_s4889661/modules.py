@@ -137,11 +137,24 @@ class Discriminator(nn.Module):
 # WEIGHT INITIALISATION
 # =============================================================================
 
+def weights_init(m):
+    """DCGAN init: conv weights ~ N(0, 0.02); norm scale ~ N(1, 0.02), shift 0.
+
+    Apply with model.apply(weights_init).
+    """
+    if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
+        nn.init.normal_(m.weight, 0.0, 0.02)
+    elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+        nn.init.normal_(m.weight, 1.0, 0.02)
+        nn.init.zeros_(m.bias)
 
 # =============================================================================
 # HELPERS
 # =============================================================================
 
+def count_params(model):
+    """Number of trainable parameters (reported in the resource profiling table)."""
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 # =============================================================================
 # SELF-TEST: SHAPES, OUTPUT RANGE, PARAMETER COUNTS
