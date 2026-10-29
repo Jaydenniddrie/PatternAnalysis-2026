@@ -48,11 +48,13 @@ from modules import Generator, Discriminator, weights_init, count_params, Z_DIM
 def parse_args():
     p = argparse.ArgumentParser(description="Train a GAN on HipMRI 2D slices")
     p.add_argument("--root", required=True, help="path to keras_slices_data")
-    p.add_argument("--model", default="dcgan", choices=["dcgan"])
+    p.add_argument("--model", default="dcgan", choices=["dcgan", "wgan-gp"])
     p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--batch-size", type=int, default=64)
-    p.add_argument("--lr", type=float, default=2e-4)      # DCGAN paper value
-    p.add_argument("--beta1", type=float, default=0.5)    # DCGAN paper value
+    p.add_argument("--lr", type=float, default=None,
+                   help="default: 2e-4 (DCGAN) or 1e-4 (WGAN-GP)")
+    p.add_argument("--n-critic", type=int, default=5, help="WGAN-GP critic steps per G step")
+    p.add_argument("--gp-weight", type=float, default=10.0, help="WGAN-GP penalty weight (lambda)")
     p.add_argument("--z-dim", type=int, default=Z_DIM)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--max-files", type=int, default=None, help="subset for smoke tests")
@@ -265,13 +267,21 @@ def main():
           f"| batches/epoch: {len(loader)}")
 
     # --- Models and optimisers ------------------------------------------------
+    # Same generator for both models; only the discriminator/critic and loss differ.
+    wgan = args.model == "wgan-gp"
     G = Generator(args.z_dim).to(device)
-    D = Discriminator(norm="batch").to(device)
+    D = Discriminator(norm="layer" if wgan else "batch").to(device)
     G.apply(weights_init)
     D.apply(weights_init)
-    opt_G = torch.optim.Adam(G.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
-    opt_D = torch.optim.Adam(D.parameters(), lr=args.lr, betas=(args.beta1, 0.999))
-    bce = nn.BCEWithLogitsLoss()   # sigmoid + BCE in one numerically stable op
+
+    # Optimiser settings from each model's paper:
+    #   DCGAN   (Radford et al.):   lr 2e-4, betas (0.5, 0.999)
+    #   WGAN-GP (Gulrajani et al.): lr 1e-4, betas (0.0, 0.9)
+    lr = args.lr or (1e-4 if wgan else 2e-4)
+    betas = (0.0, 0.9) if wgan else (0.5, 0.999)
+    opt_G = torch.optim.Adam(G.parameters(), lr=lr, betas=betas)
+    opt_D = torch.optim.Adam(D.parameters(), lr=lr, betas=betas)
+    bce = nn.BCEWithLogitsLoss()   # used by DCGAN only
 
     # Fixed noise: the same 64 vectors every epoch, to watch samples evolve
     fixed_z = torch.randn(64, args.z_dim, device=device)
@@ -287,8 +297,12 @@ def main():
         sums, n = {}, 0
 
         for (real,) in loader:
-            stats = dcgan_step(G, D, real.to(device), opt_G, opt_D, bce,
-                               args.z_dim, device)
+            real = real.to(device)
+            if wgan:
+                stats = wgan_gp_step(G, D, real, opt_G, opt_D, args.z_dim, device,
+                                     n_critic=args.n_critic, gp_weight=args.gp_weight)
+            else:
+                stats = dcgan_step(G, D, real, opt_G, opt_D, bce, args.z_dim, device)
             for k, v in stats.items():
                 sums[k] = sums.get(k, 0.0) + v
             n += 1
