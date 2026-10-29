@@ -121,6 +121,36 @@ def dcgan_step(G, D, real, opt_G, opt_D, bce, z_dim, device):
     }
 
 # =============================================================================
+# WGAN-GP TRAINING STEP (several critic updates, then one generator update)
+# =============================================================================
+
+def gradient_penalty(critic, real, fake, device):
+    """Gradient penalty (Gulrajani et al., 2017).
+
+    Keeps the critic smooth (1-Lipschitz) by penalising the gradient norm of
+    its score, at points blended between real and fake images, for
+    deviating from 1.
+    """
+    b = real.size(0)
+
+    # One random blend weight per image, broadcast over channels and pixels
+    eps = torch.rand(b, 1, 1, 1, device=device)
+    mixed = (eps * real + (1 - eps) * fake).requires_grad_(True)
+
+    scores = critic(mixed)
+
+    # Gradient of the scores w.r.t. the blended pixels. create_graph=True lets
+    # the penalty itself be backpropagated into the critic's weights.
+    grads = torch.autograd.grad(
+        outputs=scores, inputs=mixed,
+        grad_outputs=torch.ones_like(scores),
+        create_graph=True,
+    )[0]
+
+    grads = grads.view(b, -1)                     # one gradient vector per image
+    return ((grads.norm(2, dim=1) - 1) ** 2).mean()
+
+# =============================================================================
 # OUTPUTS: SAMPLE GRIDS, CHECKPOINTS, PLOTS
 # =============================================================================
 
