@@ -8,3 +8,4 @@ __pycache__/
 .ipynb_checkpoints/
 ai_notes.md
 data_preview.png
+slurm/logs/
