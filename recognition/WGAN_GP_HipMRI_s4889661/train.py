@@ -150,6 +150,46 @@ def gradient_penalty(critic, real, fake, device):
     grads = grads.view(b, -1)                     # one gradient vector per image
     return ((grads.norm(2, dim=1) - 1) ** 2).mean()
 
+def wgan_gp_step(G, C, real, opt_G, opt_C, z_dim, device, n_critic=5, gp_weight=10.0):
+    """One WGAN-GP update: n_critic critic updates, then one generator update.
+
+    Simplification: the same real batch is reused for all critic updates, so
+    the generator gets one update per batch, the same as DCGAN. This keeps
+    generator updates per epoch equal across both models (a fairer
+    comparison), at the cost of differing slightly from Algorithm 1 of
+    Gulrajani et al., which samples a fresh real batch per critic update.
+    """
+    b = real.size(0)
+
+    # --- 1. Critic: maximise score(real) - score(fake), keep it smooth --------
+    for _ in range(n_critic):
+        z = torch.randn(b, z_dim, device=device)
+        fake = G(z).detach()                       # critic step must not update G
+        c_real = C(real).mean()
+        c_fake = C(fake).mean()
+        gp = gradient_penalty(C, real, fake, device)
+        loss_C = c_fake - c_real + gp_weight * gp  # minimising this widens the gap
+
+        opt_C.zero_grad(set_to_none=True)
+        loss_C.backward()
+        opt_C.step()
+
+    # --- 2. Generator: make fakes score high ----------------------------------
+    z = torch.randn(b, z_dim, device=device)
+    loss_G = -C(G(z)).mean()
+
+    opt_G.zero_grad(set_to_none=True)
+    loss_G.backward()
+    opt_G.step()
+
+    return {
+        "loss_C": loss_C.item(),
+        "loss_G": loss_G.item(),
+        # Estimated Wasserstein distance: should shrink as fakes improve
+        "w_dist": (c_real - c_fake).item(),
+        "gp": gp.item(),
+    }
+
 # =============================================================================
 # OUTPUTS: SAMPLE GRIDS, CHECKPOINTS, PLOTS
 # =============================================================================
