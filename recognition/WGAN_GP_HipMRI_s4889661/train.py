@@ -215,18 +215,29 @@ def save_checkpoint(G, D, opt_G, opt_D, epoch, args, out):
 
 
 def plot_losses(history, out):
-    """Plot losses and discriminator confidence over epochs."""
+    """Plot every logged loss, plus the model-specific training diagnostic.
+
+    DCGAN: discriminator confidence D(real) / D(G(z)).
+    WGAN-GP: estimated Wasserstein distance (critic score gap).
+    """
     epochs = [h["epoch"] for h in history]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
 
-    ax1.plot(epochs, [h["loss_D"] for h in history], label="D loss")
-    ax1.plot(epochs, [h["loss_G"] for h in history], label="G loss")
+    # Left: all losses (loss_D / loss_C and loss_G)
+    for key in [k for k in history[0] if k.startswith("loss_")]:
+        ax1.plot(epochs, [h[key] for h in history], label=key)
     ax1.set_xlabel("epoch"); ax1.set_title("Training losses"); ax1.legend()
 
-    ax2.plot(epochs, [h["D_real"] for h in history], label="D(real)")
-    ax2.plot(epochs, [h["D_fake"] for h in history], label="D(G(z))")
-    ax2.axhline(0.5, ls="--", c="grey", lw=0.8)
-    ax2.set_xlabel("epoch"); ax2.set_title("Discriminator confidence"); ax2.legend()
+    # Right: the diagnostic that matters for this model type
+    if "D_real" in history[0]:
+        ax2.plot(epochs, [h["D_real"] for h in history], label="D(real)")
+        ax2.plot(epochs, [h["D_fake"] for h in history], label="D(G(z))")
+        ax2.axhline(0.5, ls="--", c="grey", lw=0.8)
+        ax2.set_title("Discriminator confidence")
+    else:
+        ax2.plot(epochs, [h["w_dist"] for h in history], label="Wasserstein estimate")
+        ax2.set_title("Critic score gap (Wasserstein estimate)")
+    ax2.set_xlabel("epoch"); ax2.legend()
 
     plt.tight_layout()
     plt.savefig(os.path.join(out, "loss_curves.png"), dpi=120)
@@ -287,9 +298,9 @@ def main():
         record["epoch"] = epoch
         record["epoch_time_s"] = time.time() - t_epoch
         history.append(record)
-        print(f"Epoch {epoch:3d}/{args.epochs} | D {record['loss_D']:.3f} "
-              f"| G {record['loss_G']:.3f} | D(x) {record['D_real']:.2f} "
-              f"| D(G(z)) {record['D_fake']:.2f} | {record['epoch_time_s']:.1f}s")
+        metrics = " | ".join(f"{k} {v:.3f}" for k, v in record.items()
+                             if k not in ("epoch", "epoch_time_s"))
+        print(f"Epoch {epoch:3d}/{args.epochs} | {metrics} | {record['epoch_time_s']:.1f}s")
 
         save_samples(G, fixed_z, os.path.join(out, "samples", f"epoch_{epoch:03d}.png"))
         save_checkpoint(G, D, opt_G, opt_D, epoch, args, out)
