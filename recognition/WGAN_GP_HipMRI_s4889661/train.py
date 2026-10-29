@@ -239,8 +239,6 @@ def main():
         json.dump({"summary": summary, "history": history}, f, indent=2)
     plot_losses(history, out)
     print(f"Done in {summary['total_time_s']:.1f}s. Outputs in {out}/")
-    print(f"Device: {device}")
-
 
 if __name__ == "__main__":
     main()
