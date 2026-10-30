@@ -47,6 +47,8 @@ def parse_args():
     p.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3],
                    help="random seeds for uncurated sample grids")
     p.add_argument("--n-per-seed", type=int, default=8)
+    p.add_argument("--n-eval", type=int, default=512,
+                   help="generated samples per model for quantitative metrics")
     return p.parse_args()
 
 
@@ -165,6 +167,29 @@ def ssim(x, y, window):
 # 3. MEMORISATION AUDIT: NEAREST-NEIGHBOUR DISTANCES
 # =============================================================================
 
+def to_unit(x):
+    """[-1, 1] -> [0, 1], the range SSIM's constants assume."""
+    return (x + 1) / 2
+
+
+def nearest_neighbours(queries, reference, chunk=256):
+    """For each query image, the index of and L2 pixel distance to its closest
+    reference image. Chunked so the distance matrix fits in memory.
+    Reused by the memorisation audit."""
+    ref = reference.flatten(1)
+    dists, idxs = [], []
+    for q in queries.flatten(1).split(chunk):
+        d = torch.cdist(q, ref)                           # [chunk, n_reference]
+        best = d.min(dim=1)
+        dists.append(best.values)
+        idxs.append(best.indices)
+    return torch.cat(dists), torch.cat(idxs)
+
+
+def fidelity_ssim(samples, train, window):
+    """SSIM between each sample and its nearest training slice."""
+    _, idx = nearest_neighbours(samples, train)
+    return ssim(to_unit(samples), to_unit(train[idx]), window)
 
 # =============================================================================
 # 4. LATENT INTERPOLATION
@@ -201,6 +226,16 @@ def main():
         path = plot_uncurated_grid(G, name, args.seeds, args.n_per_seed,
                                    args.out_dir, device)
         print(f"  saved {path}")
+    # --- 2. Fidelity: SSIM to the nearest real training slice ---------------
+    window = gaussian_window()
+    ref = fidelity_ssim(real["test"], real["train"], window)
+    print(f"\nFidelity (SSIM to nearest training slice, higher = more similar)")
+    print(f"  Real test patients (reference): {ref.mean():.3f} ± {ref.std():.3f}")
+
+    for name, G in models.items():
+        samples = generate(G, args.n_eval, seed=1234, device=device)
+        s = fidelity_ssim(samples, real["train"], window)
+        print(f"  {name:8s} ({args.n_eval} samples):  {s.mean():.3f} ± {s.std():.3f}")
 
 
 if __name__ == "__main__":
