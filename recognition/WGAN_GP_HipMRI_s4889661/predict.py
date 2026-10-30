@@ -30,6 +30,8 @@ import torch
 from modules import Generator, Z_DIM, count_params
 from dataset import load_split
 
+import torch.nn.functional as F
+
 
 # =============================================================================
 # COMMAND-LINE ARGUMENTS
@@ -129,6 +131,35 @@ def plot_real_grid(images, split, n_rows, n_cols, out_dir, seed=0):
 # 2. FIDELITY: SSIM TO THE CLOSEST REAL SLICE
 # =============================================================================
 
+def gaussian_window(size=11, sigma=1.5):
+    """2D Gaussian weighting window used by SSIM (standard 11x11, sigma 1.5)."""
+    coords = torch.arange(size, dtype=torch.float32) - size // 2
+    g = torch.exp(-coords ** 2 / (2 * sigma ** 2))
+    g = g / g.sum()
+    return (g[:, None] * g[None, :])[None, None]          # [1, 1, size, size]
+
+
+def ssim(x, y, window):
+    """Mean SSIM per image pair (Wang et al., 2004).
+
+    x, y: [N, 1, H, W] in [0, 1]. Compares local luminance (means),
+    contrast (variances) and structure (covariance) in Gaussian-weighted
+    windows, then averages over the image. 1 = identical.
+    Note: zero padding at the borders slightly lowers edge values compared
+    with implementations that only use full windows.
+    """
+    C1, C2 = 0.01 ** 2, 0.03 ** 2                         # stabilisers for data range 1
+    pad = window.shape[-1] // 2
+
+    mu_x = F.conv2d(x, window, padding=pad)
+    mu_y = F.conv2d(y, window, padding=pad)
+    var_x = F.conv2d(x * x, window, padding=pad) - mu_x ** 2
+    var_y = F.conv2d(y * y, window, padding=pad) - mu_y ** 2
+    cov_xy = F.conv2d(x * y, window, padding=pad) - mu_x * mu_y
+
+    num = (2 * mu_x * mu_y + C1) * (2 * cov_xy + C2)
+    den = (mu_x ** 2 + mu_y ** 2 + C1) * (var_x + var_y + C2)
+    return (num / den).mean(dim=(1, 2, 3))                # one value per pair
 
 # =============================================================================
 # 3. MEMORISATION AUDIT: NEAREST-NEIGHBOUR DISTANCES
