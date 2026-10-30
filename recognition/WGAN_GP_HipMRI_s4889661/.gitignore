@@ -9,3 +9,4 @@ __pycache__/
 ai_notes.md
 data_preview.png
 slurm/logs/
+figures/
