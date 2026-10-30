@@ -71,11 +71,38 @@ def generate(G, n, seed, device):
 # DISPLAY HELPERS
 # =============================================================================
 
+def to_display(img):
+    """[1, H, W] tensor in [-1, 1] -> H x W array in [0, 1], rotated 90°.
+
+    The NIfTI slices load rotated relative to the usual radiological view;
+    rotation is applied for display only and never affects training or metrics.
+    """
+    return np.rot90(((img[0].numpy() + 1) / 2).clip(0, 1))
 
 # =============================================================================
 # 1. UNCURATED SAMPLE GRIDS (DIVERSITY)
 # =============================================================================
 
+def plot_uncurated_grid(G, name, seeds, n_per_seed, out_dir, device):
+    """One row per seed, n_per_seed samples per row, nothing selected or
+    removed, so the grid honestly reflects the model's output diversity."""
+    fig, axes = plt.subplots(len(seeds), n_per_seed,
+                             figsize=(n_per_seed * 1.6, len(seeds) * 0.9 + 0.6))
+    for r, seed in enumerate(seeds):
+        imgs = generate(G, n_per_seed, seed, device)
+        for c in range(n_per_seed):
+            ax = axes[r, c]
+            ax.imshow(to_display(imgs[c]), cmap="gray", vmin=0, vmax=1)
+            ax.axis("off")
+        axes[r, 0].set_title(f"seed {seed}", fontsize=8, loc="left")
+
+    fig.suptitle(f"{name}: uncurated samples "
+                 f"({len(seeds)} seeds × {n_per_seed}, no selection)")
+    plt.tight_layout()
+    path = os.path.join(out_dir, f"uncurated_{name.lower().replace('-', '')}.png")
+    plt.savefig(path, dpi=150)
+    plt.close()
+    return path
 
 # =============================================================================
 # 2. FIDELITY: SSIM TO THE CLOSEST REAL SLICE
@@ -109,6 +136,9 @@ def main():
         sample = generate(G, 2, seed=0, device=device)
         print(f"Loaded {name}: {count_params(G):,} params, "
               f"sample {tuple(sample.shape)}, range [{sample.min():.2f}, {sample.max():.2f}]")
+        path = plot_uncurated_grid(G, name, args.seeds, args.n_per_seed,
+                                   args.out_dir, device)
+        print(f"  saved {path}")
 
 
 if __name__ == "__main__":
