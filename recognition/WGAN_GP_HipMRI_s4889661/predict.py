@@ -28,6 +28,7 @@ import numpy as np                    # allowed in predict.py for visualisation
 import torch
 
 from modules import Generator, Z_DIM, count_params
+from dataset import load_split
 
 
 # =============================================================================
@@ -102,6 +103,26 @@ def plot_uncurated_grid(G, name, seeds, n_per_seed, out_dir, device):
     path = os.path.join(out_dir, f"uncurated_{name.lower().replace('-', '')}.png")
     plt.savefig(path, dpi=150)
     plt.close()
+    return 
+    
+def plot_real_grid(images, split, n_rows, n_cols, out_dir, seed=0):
+    """Random (seeded, unselected) real slices in the same layout as the
+    generated grids, as a visual reference for fidelity."""
+    gen = torch.Generator().manual_seed(seed)
+    idx = torch.randperm(len(images), generator=gen)[: n_rows * n_cols]
+
+    fig, axes = plt.subplots(n_rows, n_cols,
+                             figsize=(n_cols * 1.6, n_rows * 0.9 + 0.6))
+    for ax, i in zip(axes.flat, idx):
+        ax.imshow(to_display(images[i]), cmap="gray", vmin=0, vmax=1)
+        ax.axis("off")
+
+    fig.suptitle(f"Real {split} slices: random sample "
+                 f"({n_rows * n_cols}, no selection)")
+    plt.tight_layout()
+    path = os.path.join(out_dir, f"real_{split}.png")
+    plt.savefig(path, dpi=150)
+    plt.close()
     return path
 
 # =============================================================================
@@ -127,6 +148,16 @@ def main():
     args = parse_args()
     device = torch.device("cpu")      # evaluation is light; CPU keeps it simple
     os.makedirs(args.out_dir, exist_ok=True)
+
+    # --- Real reference data (train = what the GANs learned from;
+    #     test = unseen patients, used as the reference for the audit) -------
+    real = {split: load_split(args.root, split)["images"]
+            for split in ("train", "test")}
+    print(f"Real slices: train {tuple(real['train'].shape)}, "
+          f"test {tuple(real['test'].shape)}")
+    path = plot_real_grid(real["test"], "test", len(args.seeds),
+                          args.n_per_seed, args.out_dir)
+    print(f"  saved {path}")
 
     models = {
         "DCGAN": load_generator(args.dcgan, device),
