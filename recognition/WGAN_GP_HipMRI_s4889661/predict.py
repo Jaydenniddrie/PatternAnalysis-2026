@@ -241,6 +241,41 @@ def plot_nearest_pairs(samples, d_syn, idx_syn, train, name, out_dir, n=6):
 # 4. LATENT INTERPOLATION
 # =============================================================================
 
+@torch.no_grad()
+def plot_interpolation(models, out_dir, n_steps=8, n_pairs=2, seed=7, device="cpu"):
+    """Morph between pairs of random noise vectors, using the same endpoints
+    for every model. Rows = (model, pair), columns = interpolation steps.
+
+    Smooth, anatomically plausible transitions suggest a continuous learned
+    space rather than memorised images; abrupt jumps or implausible
+    intermediate frames are failure evidence. Linear interpolation is used;
+    spherical interpolation (slerp) is a common alternative for Gaussian
+    noise vectors.
+    """
+    gen = torch.Generator().manual_seed(seed)
+    ends = torch.randn(n_pairs, 2, Z_DIM, generator=gen)    # [pair, start/end, z]
+    t = torch.linspace(0, 1, n_steps)[:, None]              # [n_steps, 1]
+
+    rows = []
+    for name, G in models.items():
+        for p in range(n_pairs):
+            z = (1 - t) * ends[p, 0] + t * ends[p, 1]       # [n_steps, Z_DIM]
+            rows.append((f"{name}, pair {p + 1}", G(z.to(device)).cpu()))
+
+    fig, axes = plt.subplots(len(rows), n_steps,
+                             figsize=(n_steps * 1.6, len(rows) * 0.9 + 0.6))
+    for r, (label, imgs) in enumerate(rows):
+        for c in range(n_steps):
+            axes[r, c].imshow(to_display(imgs[c]), cmap="gray", vmin=0, vmax=1)
+            axes[r, c].axis("off")
+        axes[r, 0].set_title(label, fontsize=8, loc="left")
+
+    fig.suptitle("Latent interpolation (same noise endpoints for both models)")
+    plt.tight_layout()
+    path = os.path.join(out_dir, "latent_interpolation.png")
+    plt.savefig(path, dpi=150)
+    plt.close()
+    return path
 
 # =============================================================================
 # MAIN
@@ -330,6 +365,10 @@ def main():
         frac_hi = (s > ssim_thr).float().mean().item()
         print(f"  {name:8s}: corr(contrast, NN distance) = {r:+.2f} | "
               f"max SSIM {s.max():.3f} | {frac_hi:.1%} above real 95th pct SSIM (expected ~5%)")
+
+    # --- 4. Latent interpolation ---------------------------------------------
+    print(f"\nLatent interpolation")
+    print(f"  saved {plot_interpolation(models, args.out_dir, device=device)}")
 
 
 if __name__ == "__main__":
