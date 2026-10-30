@@ -107,7 +107,7 @@ def plot_uncurated_grid(G, name, seeds, n_per_seed, out_dir, device):
     path = os.path.join(out_dir, f"uncurated_{name.lower().replace('-', '')}.png")
     plt.savefig(path, dpi=150)
     plt.close()
-    return 
+    return path
     
 def plot_real_grid(images, split, n_rows, n_cols, out_dir, seed=0):
     """Random (seeded, unselected) real slices in the same layout as the
