@@ -186,10 +186,21 @@ def nearest_neighbours(queries, reference, chunk=256):
     return torch.cat(dists), torch.cat(idxs)
 
 
-def fidelity_ssim(samples, train, window):
-    """SSIM between each sample and its nearest training slice."""
-    _, idx = nearest_neighbours(samples, train)
-    return ssim(to_unit(samples), to_unit(train[idx]), window)
+def fidelity_ssim(samples, train, window, k=20):
+    """SSIM between each sample and its most structurally similar training
+    slice. The k nearest training slices by L2 distance are shortlisted
+    (cheap), then the highest SSIM among them is kept. This approximates
+    the SSIM-nearest slice without comparing against all 11,460 slices."""
+    ref = train.flatten(1)
+    best = []
+    for q in samples.split(64):
+        d = torch.cdist(q.flatten(1), ref)                    # [b, n_train]
+        idx = d.topk(k, largest=False).indices                # [b, k] nearest by L2
+        cand = train[idx.flatten()]                           # [b*k, 1, H, W]
+        qq = q.repeat_interleave(k, dim=0)                    # pair each query with its k
+        s = ssim(to_unit(qq), to_unit(cand), window).view(-1, k)
+        best.append(s.max(dim=1).values)                      # best match per query
+    return torch.cat(best)
 
 # =============================================================================
 # 4. LATENT INTERPOLATION
