@@ -278,6 +278,31 @@ def plot_interpolation(models, out_dir, n_steps=8, n_pairs=2, seed=7, device="cp
     return path
 
 # =============================================================================
+# 5. FAILURE CASES
+# =============================================================================
+
+def plot_worst_samples(samples_by_model, ssim_by_model, out_dir, n=6):
+    """Each model's n lowest-SSIM samples, selected by metric rather than by
+    hand, as candidates for the failure autopsy. Labels give the sample index
+    (seed 1234 draw) so every case can be regenerated exactly."""
+    names = list(samples_by_model)
+    fig, axes = plt.subplots(len(names), n,
+                             figsize=(n * 1.8, len(names) * 1.2 + 0.6))
+    for r, name in enumerate(names):
+        s = ssim_by_model[name]
+        for c, i in enumerate(s.argsort()[:n]):              # lowest SSIM first
+            axes[r, c].imshow(to_display(samples_by_model[name][i]),
+                              cmap="gray", vmin=0, vmax=1)
+            axes[r, c].set_title(f"{name} #{i.item()}  SSIM {s[i]:.2f}", fontsize=7)
+            axes[r, c].axis("off")
+    fig.suptitle("Failure candidates: lowest-SSIM samples per model (selected by metric)")
+    plt.tight_layout()
+    path = os.path.join(out_dir, "failure_candidates.png")
+    plt.savefig(path, dpi=150)
+    plt.close()
+    return path
+
+# =============================================================================
 # MAIN
 # =============================================================================
 
@@ -369,6 +394,10 @@ def main():
     # --- 4. Latent interpolation ---------------------------------------------
     print(f"\nLatent interpolation")
     print(f"  saved {plot_interpolation(models, args.out_dir, device=device)}")
+
+    # --- 5. Failure cases ----------------------------------------------------
+    print(f"\nFailure cases")
+    print(f"  saved {plot_worst_samples(samples_by_model, ssim_by_model, args.out_dir)}")
 
 
 if __name__ == "__main__":
