@@ -230,6 +230,7 @@ def main():
         "DCGAN": load_generator(args.dcgan, device),
         "WGAN-GP": load_generator(args.wgan, device),
     }
+    samples_by_model = {}
     for name, G in models.items():
         sample = generate(G, 2, seed=0, device=device)
         print(f"Loaded {name}: {count_params(G):,} params, "
@@ -242,11 +243,33 @@ def main():
     ref = fidelity_ssim(real["test"], real["train"], window)
     print(f"\nFidelity (SSIM to nearest training slice, higher = more similar)")
     print(f"  Real test patients (reference): {ref.mean():.3f} ± {ref.std():.3f}")
-
+    
     for name, G in models.items():
         samples = generate(G, args.n_eval, seed=1234, device=device)
+        samples_by_model[name] = samples
         s = fidelity_ssim(samples, real["train"], window)
         print(f"  {name:8s} ({args.n_eval} samples):  {s.mean():.3f} ± {s.std():.3f}")
+
+    # --- 3. Memorisation audit: distance to the nearest training slice -------
+    # Real unseen patients show how close a genuinely NEW scan naturally sits
+    # to the training set. Synthetic samples much closer than that suggest
+    # copying. Threshold = 5th percentile of the real reference distances, so
+    # ~5% of samples falling below it is what "new data" looks like.
+    d_ref, _ = nearest_neighbours(real["test"], real["train"])
+    threshold = torch.quantile(d_ref, 0.05)
+    print(f"\nMemorisation audit (L2 distance to nearest training slice, lower = closer)")
+    print(f"  Real test patients (reference): median {d_ref.median():.2f}, "
+          f"min {d_ref.min():.2f}, 5th pct {threshold:.2f}")
+
+    audit = {"Real test (unseen patients)": d_ref}
+    nn_idx = {}
+    for name, samples in samples_by_model.items():
+        d_syn, idx_syn = nearest_neighbours(samples, real["train"])
+        frac = (d_syn < threshold).float().mean().item()
+        print(f"  {name:8s}: median {d_syn.median():.2f}, min {d_syn.min():.2f}, "
+              f"{frac:.1%} of samples closer than real 5th pct (expected ~5%)")
+        audit[name] = d_syn
+        nn_idx[name] = idx_syn
 
 
 if __name__ == "__main__":
