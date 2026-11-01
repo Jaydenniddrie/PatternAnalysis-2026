@@ -94,40 +94,20 @@ Workable fallback: lets say WGAN-GP is unstable, I will tune the number of criti
 
 ## 4. Dataset, Pre-processing and Splits
 
-**Dataset.** The HipMRI Study 2D slices (`keras_slices_data`, available on
-Rangpur at `/home/groups/comp3710/HipMRI_Study_open`) contain 12,660 axial
-pelvic MRI slices from 211 scans of 38 prostate cancer patients. Every scan
-has exactly 60 slices, and most patients were scanned at several weekly
-timepoints. Only the image folders are used; the segmentation masks are not
-needed for unconditional generation.
+**Dataset.** The HipMRI Study 2D slices (`keras_slices_data`, available on Rangpur at `/home/groups/comp3710/HipMRI_Study_open`) contain 12,660 axial pelvic MRI slices from 211 scans of 38 prostate cancer patients. Every scan has exactly 60 slices, and most patients were scanned at several weekly time points. Only the image folders are used; the segmentation masks are not needed for unconditional generation.
 
 **Pre-processing** (`dataset.py`):
-1. Each slice is min-max scaled to [-1, 1] to match the generator's tanh
-   output range. Scaling is per slice because MRI intensities have no fixed
-   physical scale between scans; the trade-off is that absolute brightness
-   differences between scans are lost.
-2. Slices are 256×128, except one scan (60 slices) at 256×144, which is
-   centre-cropped to 256×128 so every slice has the same pixel scale.
-3. Slices are bilinearly downsampled to 128×64, halving the resolution to
-   reduce training cost while preserving the 2:1 aspect ratio so anatomy is
-   not distorted.
+1. Each slice is min-max scaled to [-1, 1] to match the generator's tanh output range. Scaling is per slice because MRI intensities have no fixed physical scale between scans (Nyúl & Udupa, 1999); the trade-off is that absolute brightness differences between scans are lost.
+2. Slices are 256×128, except one scan (60 slices) at 256×144, which is centre-cropped to 256×128 so every slice has the same pixel scale.
+3. Slices are bilinearly downsampled to 128×64, halving the resolution to reduce training cost while preserving the 2:1 aspect ratio so anatomy is not distorted.
 
-Each full split is cached as a single tensor so training does not re-read
-around 11,000 files every epoch.
+Each full split is cached as a single tensor so training does not re-read around 11,000 files every epoch.
 
-**Splits.** I used the provided train/validate/test split (11,460 / 660 / 540
-slices; 31 / 4 / 3 patients). I verified it is patient-level by extracting
-patient IDs from the filenames, with both a shell comparison and an
-assertion in `dataset.py`: no patient appears in more than one split.
+**Splits.** I used the provided train/validate/test split (11,460 / 660 / 540 slices; 31 / 4 / 3 patients). I verified it is patient-level by extracting patient IDs from the filenames, with both a shell comparison and an assertion in `dataset.py`: no patient appears in more than one split.
 
 - **Train** is the only data the GANs see during training.
-- **Test** is the "unseen real patients" reference for the fidelity and
-  memorisation evaluation. It shows how close a genuinely new scan naturally
-  sits to the training data, which is only valid because these patients were
-  never seen in training.
-- **Validate** is not used for model selection: unconditional GAN training
-  has no held-out loss to tune against, so training was monitored with
-  fixed-noise sample grids and loss curves instead.
+- **Test** is the "unseen real patients" reference for the fidelity and memorisation evaluation. It shows how close a genuinely new scan naturally sits to the training data, which is only valid because these patients were never seen in training.
+- **Validate** is not used for model selection: unconditional GAN training has no held-out loss to tune against, so training was monitored with fixed-noise sample grids and loss curves instead.
 
 
 ## 5. Dependencies and Reproducibility
