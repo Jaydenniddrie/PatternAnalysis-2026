@@ -245,86 +245,47 @@ Both models interpolate smoothly between random noise vectors, with no abrupt ju
 
 ![Failure candidates](images/failure_candidates.png)
 
-Failure cases were drawn from three sources so they are not hand-picked
-only for effect: the six lowest-SSIM samples per model (figure above,
-selected by metric; numbers are sample indices in the seed-1234 draw, so
-each can be regenerated exactly), the uncurated grids (§7.1) and the latent
-interpolation (§7.6). Each case is compared against the real test slices.
+Failure cases were drawn from three sources so they are not hand-picked only for effect: the six lowest-SSIM samples per model (figure above, selected by metric; numbers are sample indices in the seed-1234 draw, so each can be regenerated exactly), the uncurated grids (§7.1) and the latent interpolation (§7.6). Each case is compared against the real test slices.
 
-**Notably, WGAN-GP has the worse worst case:** its six lowest-SSIM samples
-score 0.22–0.25, against DCGAN's 0.25–0.26, even though its average is
-higher. The failures below explain why.
+Notably, WGAN-GP has the worse worst case: its six lowest-SSIM samples score 0.22–0.25, against DCGAN's 0.25–0.26, even though its average is higher. The failures below explain why.
 
 ### Case 1: Misplaced organ and global incoherence (DCGAN)
 *Evidence:* sample #456; uncurated grid, seed 1, columns 2–3.
-- **What happened:** an oversized bladder sits off-centre in a distorted,
-  asymmetric pelvis.
-- **Expected:** the bladder top-centre in a left/right-symmetric pelvis, as
-  in every real test slice.
-- **Likely cause:** convolutional layers learn local texture well, but
-  nothing explicitly enforces global anatomical layout, and the dominant
-  discriminator (D(G(z)) ≈ 0.05) gave the generator weak, noisy feedback.
-- **Model difference:** rarer in WGAN-GP, which places the bladder
-  consistently.
+- **What happened:** an oversized bladder sits off-centre in a distorted, asymmetric pelvis.
+- **Expected:** the bladder top-centre in a left/right-symmetric pelvis, as in every real test slice.
+- **Likely cause:** convolutional layers learn local texture well, but nothing explicitly enforces global anatomical layout, and the dominant discriminator (D(G(z)) ≈ 0.05) gave the generator weak, noisy feedback.
+- **Model difference:** rarer in WGAN-GP, which places the bladder consistently.
 
 ### Case 2: High-frequency artefacts and background speckle (DCGAN)
 *Evidence:* samples #221, #368; uncurated grid, seeds 0 and 2, column 1.
-- **What happened:** striated "wood-grain" or chaotic tissue texture, and
-  bright speckle dots in what should be empty black background.
+- **What happened:** striated "wood-grain" or chaotic tissue texture, and bright speckle dots in what should be an empty black background.
 - **Expected:** smooth tissue regions and a clean background.
-- **Likely cause:** transposed convolutions are prone to high-frequency and
-  checkerboard artefacts; unstable adversarial training (discriminator loss
-  spikes at epochs 27 and 30) did not suppress them.
+- **Likely cause:** transposed convolutions are prone to high-frequency and checkerboard artefacts; unstable adversarial training (discriminator loss spikes at epochs 27 and 30) did not suppress them.
 - **Model difference:** WGAN-GP backgrounds are clean.
 
 ### Case 3: Local mode collapse (DCGAN)
 *Evidence:* latent interpolation, DCGAN pair 2.
-- **What happened:** two different random noise vectors produced nearly
-  identical slices across all eight interpolation steps.
+- **What happened:** two different random noise vectors produced nearly identical slices across all eight interpolation steps.
 - **Expected:** different noise vectors should produce different anatomy.
-- **Likely cause:** a generator under constant pressure from a dominant
-  discriminator tends to fall back on "safe" outputs that ignore the noise
-  in parts of the latent space.
-- **Why it matters:** the uncurated grids looked diverse, so this collapse
-  was only visible through interpolation. Diversity can be overestimated
-  from sample grids alone.
+- **Likely cause:** a generator under constant pressure from a dominant discriminator tends to fall back on "safe" outputs that ignore the noise in parts of the latent space.
+- **Why it matters:** the uncurated grids looked diverse, so this collapse was only visible through interpolation. Diversity can be overestimated from sample grids alone.
 
 ### Case 4: Blur and washed-out "average" slices (WGAN-GP)
-*Evidence:* samples #205, #192, #129; interpolation, WGAN-GP pair 2,
-middle frames.
-- **What happened:** flat grey, low-contrast slices with no crisp organ
-  boundaries; #192 also shows vertical streak artefacts.
-- **Expected:** crisp tissue boundaries and a bright bladder. Real slices
-  reach an intensity of about 0.94, while WGAN-GP's maximum is 0.73.
-- **Likely cause:** the generator hedges toward the average intensity of
-  the data. The run is also likely under-trained: 30 epochs, with the
-  Wasserstein estimate still plateauing.
-- **Why it matters:** this blur is exactly what made the L2 memorisation
-  audit misleadingly flag WGAN-GP (closeness correlated with low contrast,
-  r = +0.65).
+*Evidence:* samples #205, #192, #129; interpolation, WGAN-GP pair 2, middle frames.
+- **What happened:** flat grey, low-contrast slices with no crisp organ boundaries; #192 also shows vertical streak artefacts.
+- **Expected:** crisp tissue boundaries and a bright bladder. Real slices reach an intensity of about 0.94, while WGAN-GP's maximum is 0.73.
+- **Likely cause:** the generator hedges toward the average intensity of the data. The run is also likely under-trained: 30 epochs, with the Wasserstein estimate still plateauing.
+- **Why it matters:** this blur is exactly what made the L2 memorisation audit misleadingly flag WGAN-GP (closeness correlated with low contrast, r = +0.65).
 
 ### Case 5: Missing fine anatomy (both models)
-*Evidence:* uncurated grids for both models, compared with the real test
-grid.
-- **What happened:** the femoral heads (round hip joints) and fine midline
-  structures are absent or vague in almost all samples.
-- **Expected:** clear round femoral heads either side of the bladder, as in
-  nearly every real slice.
-- **Likely cause:** small, sharp, round structures are hard to learn at
-  128×64 in 30 epochs; both models capture the coarse layout (body outline,
-  bladder) before fine detail.
-- **Why it matters:** researchers using these slices would get images
-  missing key bony landmarks. This is a clinical plausibility failure that
-  the SSIM numbers do not capture.
+*Evidence:* uncurated grids for both models, compared with the real test grid.
+- **What happened:** the femoral heads (round hip joints) and fine midline structures are absent or vague in almost all samples.
+- **Expected:** clear round femoral heads either side of the bladder, as in nearly every real slice.
+- **Likely cause:** small, sharp, round structures are hard to learn at 128×64 in 30 epochs; both models capture the coarse layout (body outline, bladder) before fine detail.
+- **Why it matters:** researchers using these slices would get images missing key bony landmarks. This is a clinical plausibility failure that the SSIM numbers do not capture.
 
 ### Operational summary
-DCGAN fails through **instability**: misplaced organs, high-frequency
-artefacts and local collapse. WGAN-GP fails through **blur**: low-contrast,
-detail-poor slices. No single metric caught every failure. SSIM missed the
-missing femoral heads, the uncurated grids hid DCGAN's local collapse, and
-the L2 audit mistook WGAN-GP's blur for memorisation. Any synthetic cohort
-from either model would need quality filtering of the low-SSIM tail and
-visual review before release.
+DCGAN fails through **instability**: misplaced organs, high-frequency artefacts and local collapse. WGAN-GP fails through **blur**: low-contrast, detail-poor slices. No single metric caught every failure. SSIM missed the missing femoral heads, the uncurated grids hid DCGAN's local collapse, and the L2 audit mistook WGAN-GP's blur for memorisation. Any synthetic cohort from either model would need quality filtering of the low-SSIM tail and visual review before release.
 
 ## 9. Acceptance Criteria Outcome
 
