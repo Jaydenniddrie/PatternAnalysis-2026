@@ -190,10 +190,10 @@ All three grids are unselected (fixed seeds, no cherry-picking) and use the same
 | Metric | Real test (reference) | DCGAN | WGAN-GP |
 |---|---|---|---|
 | Fidelity: best SSIM to 20 nearest train slices (mean ± std) | 0.397 ± 0.035 | 0.363 ± 0.045 | 0.381 ± 0.053 |
-| Worst-6 sample SSIM | — | 0.25–0.26 | 0.22–0.25 |
+| Worst-6 sample SSIM | - | 0.25–0.26 | 0.22–0.25 |
 | L2 distance to nearest train slice (median) | 23.28 | 24.59 | 22.68 |
 | % samples closer than real 5th pct L2 (expect ~5%) | 5% | 8.8% | 19.1% |
-| corr(contrast, L2 distance) | — | +0.74 | +0.65 |
+| corr(contrast, L2 distance) | - | +0.74 | +0.65 |
 | Max SSIM to a train slice | 0.503 | 0.486 | 0.514 |
 | % samples above real 95th pct SSIM (expect ~5%) | 5% | 2.1% | 8.0% |
 
