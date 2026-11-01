@@ -145,6 +145,7 @@ python dataset.py --root /path/to/keras_slices_data
 python train.py --root /path/to/keras_slices_data --max-files 256 --epochs 2 --batch-size 32 --run-name dcgan_smoke
 
 # Train (full runs on Rangpur)
+mkdir -p slurm/logs
 sbatch slurm/train_dcgan.sh
 sbatch slurm/train_wgan_gp.sh
 
