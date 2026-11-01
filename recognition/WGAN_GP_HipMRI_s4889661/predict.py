@@ -32,6 +32,8 @@ from dataset import load_split
 
 import torch.nn.functional as F
 
+import time
+
 
 # =============================================================================
 # COMMAND-LINE ARGUMENTS
@@ -303,6 +305,24 @@ def plot_worst_samples(samples_by_model, ssim_by_model, out_dir, n=6):
     return path
 
 # =============================================================================
+# 6. GENERATION RUNTIME
+# =============================================================================
+
+@torch.no_grad()
+def time_generation(G, n, device, repeats=5):
+    """Mean wall-clock time for G to generate n slices.
+
+    One warm-up pass runs first so one-off setup costs are excluded, then
+    the average of several repeats is returned.
+    """
+    z = torch.randn(n, Z_DIM, device=device)
+    G(z)
+    start = time.perf_counter()
+    for _ in range(repeats):
+        G(z)
+    return (time.perf_counter() - start) / repeats
+
+# =============================================================================
 # MAIN
 # =============================================================================
 
@@ -399,6 +419,12 @@ def main():
     print(f"\nFailure cases")
     print(f"  saved {plot_worst_samples(samples_by_model, ssim_by_model, args.out_dir)}")
 
+    # --- 6. Generation runtime -----------------------------------------------
+    print(f"\nGeneration runtime ({args.n_eval} slices, {device}, mean of 5 runs)")
+    for name, G in models.items():
+        t = time_generation(G, args.n_eval, device)
+        print(f"  {name:8s}: {t:.3f} s per {args.n_eval} slices "
+              f"({t / args.n_eval * 1000:.2f} ms/slice, {args.n_eval / t:,.0f} slices/s)")
 
 if __name__ == "__main__":
     main()

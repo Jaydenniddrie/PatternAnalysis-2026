@@ -272,6 +272,8 @@ notes the SSIM target is negotiable.
 | Training time per epoch (A100) | 1.9 s | 19.5 s |
 | Total training time, 30 epochs | 130.6 s (incl. one-off data cache build) | 660.8 s |
 | Peak PyTorch-allocated VRAM | 0.27 GB | 0.34 GB |
+| Generation time, 512 slices (Mac CPU, mean of 5) | 0.62 s (1.2 ms/slice) | 0.68 s (1.3 ms/slice) |
+| Generation throughput (Mac CPU) | ~820 slices/s | ~750 slices/s |
 
 WGAN-GP was about **10× slower per epoch** (19.5 s vs 1.9 s). It updates
 the critic five times per generator step, and the gradient penalty needs an
@@ -283,6 +285,11 @@ at this scale. Peak VRAM is PyTorch's allocated tensor memory
 (`torch.cuda.max_memory_allocated`), which excludes the CUDA context
 overhead that `nvidia-smi` would also show. The DCGAN total includes a
 one-off data-cache build, so per-epoch time is the fair comparison.
+
+Generation cost is effectively identical, because both models share the
+same generator architecture; the small difference is CPU timing noise.
+A 512-slice synthetic cohort takes under a second on a laptop CPU, so
+WGAN-GP's extra cost is paid once, at training time, not at deployment.
 
 ### 7.5 Memorisation audit
 
