@@ -4,8 +4,8 @@ dataset.py — Data loading for HipMRI 2D prostate MRI slices (keras_slices_data
 Purpose
 -------
 Loads the HipMRI 2D slices, scales them into the range a GAN generator
-produces ([-1, 1]), resizes them to a fixed square size, and wraps them in a
-PyTorch DataLoader for training.
+produces ([-1, 1]), resizes them to 128 x 64 (half resolution, keeping the 2:1 
+aspect ratio)
 
 Data splitting (leakage prevention)
 -----------------------------------
@@ -18,9 +18,10 @@ This was audited before writing this file:
 
 How the splits are used in this project:
     * train         -> the ONLY data the GANs ever see during training
-    * validate/test -> unseen real patients, used as a reference in the
+    * test          -> unseen real patients, used as a reference in the
                        memorisation audit (are synthetic images closer to the
                        training set than real unseen patients are?)
+    * validate      -> not used (no model selection for an unconditional GAN)
 
 No data augmentation is applied: for an unconditional GAN, flips/rotations
 would be learned as part of the data distribution (see README §4).
@@ -137,7 +138,7 @@ def to_gan_range(img):
 # =============================================================================
 
 def load_split(root, split, image_size=DEFAULT_SIZE, max_files=None, cache_dir="data/cache"):
-    """Load an entire split as a tensor of shape [N, 1, image_size, image_size].
+    """Load an entire split as a tensor of shape [N, 1, H, W], where image_size = (H, W).
 
     Args:
         root:       path to the keras_slices_data folder
@@ -152,8 +153,8 @@ def load_split(root, split, image_size=DEFAULT_SIZE, max_files=None, cache_dir="
             "patient_ids": int tensor [N], one patient ID per slice
 
     Reading ~11k separate files is slow, so a full load is saved once to a
-    single .pt file and reused afterwards (this is also the file we upload to
-    Colab, instead of the raw NIfTI folders).
+    single .pt file and reused afterwards (it can also be copied to another 
+    machine instead of the raw NIfTI folders)
     """
     cache = os.path.join(cache_dir, f"{split}_{image_size[0]}x{image_size[1]}.pt")
 
@@ -168,7 +169,7 @@ def load_split(root, split, image_size=DEFAULT_SIZE, max_files=None, cache_dir="
         # 1. read + scale the slice, then add batch and channel dims -> [1, 1, H, W]
         x = torch.from_numpy(to_gan_range(load_slice(f)))[None, None]
 
-        # 2. resize to a fixed square size; bilinear interpolation of values
+        # 2. resize to image_size (H, W); bilinear interpolation of values
         #    in [-1, 1] stays within [-1, 1]
         x = F.interpolate(x, size=image_size,
                           mode="bilinear", align_corners=False)
