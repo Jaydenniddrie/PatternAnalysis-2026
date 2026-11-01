@@ -359,11 +359,14 @@ segmentation models (the generator produces no masks).
 
 ## 12. References
 
-1. A. Radford, L. Metz, S. Chintala, "Unsupervised representation learning with deep convolutional generative adversarial networks," ICLR, 2016.
-2. M. Arjovsky, S. Chintala, L. Bottou, "Wasserstein generative adversarial networks," ICML, 2017.
-3. I. Gulrajani, F. Ahmed, M. Arjovsky, V. Dumoulin, A. Courville, "Improved training of Wasserstein GANs," NeurIPS, 2017.
-4. Z. Wang, A. C. Bovik, H. R. Sheikh, E. P. Simoncelli, "Image quality assessment: from error visibility to structural similarity," IEEE TIP, 2004.
-5. I. Goodfellow et al., "Generative adversarial nets," NeurIPS, 2014.
+## 12. References
+
+1. M. Arjovsky, S. Chintala, L. Bottou, "Wasserstein generative adversarial networks," in *Proc. ICML*, 2017.
+2. I. Goodfellow et al., "Generative adversarial nets," in *Proc. NeurIPS*, 2014.
+3. I. Gulrajani, F. Ahmed, M. Arjovsky, V. Dumoulin, A. Courville, "Improved training of Wasserstein GANs," in *Proc. NeurIPS*, 2017.
+4. L. G. Nyúl, J. K. Udupa, "On standardizing the MR image intensity scale," *Magnetic Resonance in Medicine*, vol. 42, no. 6, pp. 1072–1081, 1999.
+5. A. Radford, L. Metz, S. Chintala, "Unsupervised representation learning with deep convolutional generative adversarial networks," in *Proc. ICLR*, 2016.
+6. Z. Wang, A. C. Bovik, H. R. Sheikh, E. P. Simoncelli, "Image quality assessment: from error visibility to structural similarity," *IEEE Transactions on Image Processing*, vol. 13, no. 4, pp. 600–612, 2004.
 
 ## 13. Artificial Intelligence Usage Disclosure
 
