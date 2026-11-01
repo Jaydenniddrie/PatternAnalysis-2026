@@ -35,7 +35,6 @@ import torch.nn.functional as F
 from modules import Generator, Z_DIM, count_params
 from dataset import load_split
 
-
 # =============================================================================
 # COMMAND-LINE ARGUMENTS
 # =============================================================================
@@ -54,7 +53,6 @@ def parse_args():
                    help="generated samples per model for quantitative metrics")
     return p.parse_args()
 
-
 # =============================================================================
 # LOADING TRAINED GENERATORS AND SAMPLING
 # =============================================================================
@@ -66,14 +64,12 @@ def load_generator(path, device):
     G.load_state_dict(torch.load(os.path.expanduser(path), map_location=device))
     return G.to(device).eval()
 
-
 @torch.no_grad()
 def generate(G, n, seed, device):
     """Generate n slices from a fixed seed, so every figure is reproducible."""
     gen = torch.Generator().manual_seed(seed)
     z = torch.randn(n, Z_DIM, generator=gen).to(device)
     return G(z).cpu()                                  # [n, 1, 128, 64] in [-1, 1]
-
 
 # =============================================================================
 # DISPLAY HELPERS
@@ -173,7 +169,6 @@ def ssim(x, y, window):
 def to_unit(x):
     """[-1, 1] -> [0, 1], the range SSIM's constants assume."""
     return (x + 1) / 2
-
 
 def nearest_neighbours(queries, reference, chunk=256):
     """For each query image, the index of and L2 pixel distance to its closest
