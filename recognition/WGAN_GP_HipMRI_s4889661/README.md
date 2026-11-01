@@ -485,8 +485,20 @@ segmentation models (the generator produces no masks).
 
 ## 11. Limitations and Future Work
 
-TODO: e.g. unconditional (no masks/labels), 128×64 resolution, 30 epochs,
-reference set of only 3 patients, SSIM/L2 limitations, no FID.
+**Limitations**
+- **Unconditional generation:** the generator produces images only, with no segmentation masks or labels, so the synthetic slices cannot directly train supervised models such as prostate segmentation.
+- **Resolution and training length:** 128×64 (half native resolution) and 30 epochs per model. Fine structures such as the femoral heads were not learned, and the WGAN-GP Wasserstein estimate had not clearly converged.
+- **Single run per model:** each model was trained once (seed 42), so run-to-run variation is not measured.
+- **Small reference set:** the real-data reference for the fidelity and memorisation evaluation comes from only 3 test patients (540 slices), so its percentiles are uncertain.
+- **Metric limitations:** SSIM to the nearest training slice is capped at about 0.40 even for real scans, and pixel (L2) distance is confounded by blur. Neither captures anatomical plausibility (e.g. missing femoral heads), which was judged visually.
+- **No distributional metric:** FID or a feature-based coverage measure was not computed.
+- **2D only:** slices are generated independently, so there is no consistency between neighbouring slices of a volume.
+
+**Future work**
+- Train longer and at full 256×128 resolution; repeat with several seeds.
+- Add a feature-based memorisation audit and a distributional metric (e.g. FID with a medical-imaging feature extractor), using validate + test (7 patients) as the reference.
+- Generate image–mask pairs with a conditional GAN, so synthetic data can train segmentation models, and test downstream utility directly.
+- Explore architectures with stronger global structure, such as StyleGAN2, which my tutor suggested as a Hard-difficulty extension.
 
 ## 12. References
 
