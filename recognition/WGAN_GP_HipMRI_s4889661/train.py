@@ -1,19 +1,20 @@
 """
 train.py — Training script for the HipMRI GANs
 
-Trains the DCGAN baseline on the HipMRI 2D training split, logging losses,
-discriminator confidence, fixed-noise sample grids, checkpoints and resource
-usage (time, peak VRAM, parameters) for the README.
-
-WGAN-GP training is added in a later milestone via --model wgan-gp.
+Trains either the DCGAN baseline (--model dcgan) or WGAN-GP (--model wgan-gp)
+on the HipMRI 2D training split. Both use the same generator; only the
+discriminator/critic and loss differ. Logs losses and model-specific
+diagnostics, fixed-noise sample grids, checkpoints and resource usage
+(time, peak VRAM, parameters) for the README.
 
 Usage
 -----
     # quick local smoke test
     python train.py --root ~/keras_slices_data --max-files 256 --epochs 2 \
         --batch-size 32 --run-name dcgan_smoke
-    # full baseline run (Colab GPU)
-    python train.py --root /content/keras_slices_data --epochs 30 --run-name dcgan_baseline
+    # full runs (Rangpur A100: see slurm/)
+    python train.py --root <data> --model dcgan   --epochs 30 --run-name dcgan_baseline
+    python train.py --root <data> --model wgan-gp --epochs 30 --run-name wgan_gp
 
 Outputs (in runs/<run-name>/, gitignored)
 -----------------------------------------
