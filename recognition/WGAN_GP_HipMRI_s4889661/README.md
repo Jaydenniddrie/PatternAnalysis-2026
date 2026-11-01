@@ -92,28 +92,71 @@ Workable fallback: lets say WGAN-GP is unstable, I will tune the number of criti
 
 ## 4. Dataset, Pre-processing and Splits
 
-TODO: describe the dataset (HipMRI 2D slices, 12,660 slices, 211 scans × 60
-slices, 38 patients), pre-processing (per-slice min-max to [-1, 1];
-centre-crop one 256×144 scan to 256×128; bilinear downsample to 128×64
-keeping the 2:1 aspect ratio), and justify the split (provided patient-level
-split 31/4/3, verified no overlap; GANs train on train only; test patients
-used as the unseen-real reference for the memorisation audit).
+**Dataset.** The HipMRI Study 2D slices (`keras_slices_data`, available on
+Rangpur at `/home/groups/comp3710/HipMRI_Study_open`) contain 12,660 axial
+pelvic MRI slices from 211 scans of 38 prostate cancer patients. Every scan
+has exactly 60 slices, and most patients were scanned at several weekly
+timepoints. Only the image folders are used; the segmentation masks are not
+needed for unconditional generation.
+
+**Pre-processing** (`dataset.py`):
+1. Each slice is min-max scaled to [-1, 1] to match the generator's tanh
+   output range. Scaling is per slice because MRI intensities have no fixed
+   physical scale between scans; the trade-off is that absolute brightness
+   differences between scans are lost.
+2. Slices are 256×128, except one scan (60 slices) at 256×144, which is
+   centre-cropped to 256×128 so every slice has the same pixel scale.
+3. Slices are bilinearly downsampled to 128×64, halving the resolution to
+   reduce training cost while preserving the 2:1 aspect ratio so anatomy is
+   not distorted.
+
+Each full split is cached as a single tensor so training does not re-read
+around 11,000 files every epoch.
+
+**Splits.** I used the provided train/validate/test split (11,460 / 660 / 540
+slices; 31 / 4 / 3 patients). I verified it is patient-level by extracting
+patient IDs from the filenames, with both a shell comparison and an
+assertion in `dataset.py`: no patient appears in more than one split.
+
+- **Train** is the only data the GANs see during training.
+- **Test** is the "unseen real patients" reference for the fidelity and
+  memorisation evaluation. It shows how close a genuinely new scan naturally
+  sits to the training data, which is only valid because these patients were
+  never seen in training.
+- **Validate** is not used for model selection: unconditional GAN training
+  has no held-out loss to tune against, so training was monitored with
+  fixed-noise sample grids and loss curves instead.
+
 
 ## 5. Dependencies and Reproducibility
 
-| Package | Version |
-|---|---|
-| Python | TODO |
-| torch | TODO |
-| torchvision | TODO |
-| nibabel | TODO |
-| numpy | TODO |
-| matplotlib | TODO |
+| Package | Training (Rangpur A100) | Evaluation (Mac) |
+|---|---|---|
+| Python | 3.11.16 | 3.12.2 |
+| torch | 2.14.0+cu130 | 2.14.0 |
+| torchvision | 0.29.0+cu130 | 0.29.0 |
+| nibabel | 5.4.2 | 5.4.2 |
+| numpy | 2.4.6 | 2.3.1 |
+| matplotlib | 3.11.2 | 3.10.3 |
 
-TODO: reproducibility notes — fixed seeds (training seed 42, evaluation seeds
-0–3 and 1234); two DCGAN smoke tests produced identical losses; all
-hyperparameters are command-line arguments; hardware used (Rangpur A100 for
-training, Apple MPS / CPU for smoke tests and evaluation).
+PyTorch 2.14.0 was used on both machines (CUDA 13.0 build on Rangpur); the
+minor numpy and matplotlib differences affect only plotting.
+
+Install: `pip install torch torchvision nibabel numpy matplotlib`
+
+**Reproducibility.**
+- All hyperparameters are command-line arguments whose defaults are the
+  values used here (see `train.py`); exact Rangpur job settings are in
+  `slurm/`.
+- Random seeds are fixed: 42 for training, 0–3 for sample grids, 1234 for
+  the 512 evaluation samples, 7 for latent interpolation.
+- Two independent DCGAN smoke-test runs produced identical losses,
+  confirming the seeding works. Results on other hardware may differ
+  slightly because some GPU operations are non-deterministic.
+- Training used a single NVIDIA A100 on Rangpur; smoke tests and evaluation
+  ran on an Apple M-series Mac (MPS/CPU).
+- Datasets and trained weights are not included in the repository;
+  `train.py` regenerates the weights from the data.
 
 ## 6. Usage
 
