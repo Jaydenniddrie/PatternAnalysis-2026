@@ -4,27 +4,11 @@
 
 ## 1. Problem and Algorithm
 
-TODO (one paragraph): what problem this solves (scarce, privacy-restricted
-prostate MRI), what the prototype does (generates synthetic 2D pelvic MRI
-slices), the dilemma investigated (fidelity vs memorisation vs privacy),
-and the comparison (DCGAN baseline vs WGAN-GP).
+Medical AI models for prostate MRI, such as organ segmentation or cancer detection, need large training sets, but real scans are scarce, expensive to acquire and protected by patient-privacy law. The HipMRI 2D dataset used here contains only 38 patients. This project builds a prototype generative model that produces synthetic 2D pelvic MRI slices (128×64) as a possible supplement for pretraining, method development and data sharing. Synthetic data is only useful if it looks anatomically realistic, and only safe to share if it is genuinely new rather than a copy of a real patient’s scan. The project therefore investigates the domain’s fidelity–memorisation–privacy dilemma: it compares a DCGAN baseline with a WGAN-GP model, evaluating both on anatomical fidelity, diversity, memorisation of training patients and computational cost.
 
 ## 2. How It Works
 
-TODO (one paragraph): generator vs discriminator/critic, DCGAN's real/fake
-classifier vs WGAN-GP's Wasserstein critic and gradient penalty, and why the
-generator is identical in both models (controlled comparison).
-
-```mermaid
-flowchart LR
-    Z["Noise z (100-d)"] --> G["Generator<br/>4×2 → 5 transposed convs → 1×128×64, tanh<br/>(shared by both models)"]
-    G --> F["Fake slice"]
-    R["Real HipMRI slice<br/>(train split)"] --> D
-    F --> D["Discriminator / Critic<br/>5 strided convs → 1 score"]
-    D -->|"DCGAN: BatchNorm + BCE (real/fake probability)"| L1["Loss"]
-    D -->|"WGAN-GP: LayerNorm + Wasserstein loss + gradient penalty"| L1
-    L1 -.->|"gradients"| G
-```
+A generative adversarial network (GAN) trains two networks against each other. A generator turns a 100-dimensional random noise vector into a fake slice, and a discriminator compares slices against real training data; its feedback drives the generator to improve. Both models here share an identical DCGAN-style generator (a 4×2 feature map upsampled by five stride-2 transposed convolutions to a 1×128×64 image, with BatchNorm, ReLU and a tanh output), so any difference in results comes from the training objective alone. The DCGAN baseline’s discriminator is a real/fake classifier trained with binary cross-entropy. Once it becomes confident, its output saturates and the generator receives weak gradients, which can cause unstable training and mode collapse. WGAN-GP replaces it with a critic that outputs an unbounded score; the gap between its scores for real and fake images estimates the Wasserstein (earth-mover’s) distance, which gives the generator useful gradients even when it is losing. A gradient penalty keeps the critic smooth by penalising its gradient norm at points blended between real and fake images. The critic uses LayerNorm instead of BatchNorm, because the penalty requires each image to be scored independently, and it is updated five times per generator step.
 
 ## 3. Feasibility Review
 
