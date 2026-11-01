@@ -510,4 +510,26 @@ segmentation models (the generator produces no masks).
 
 ## 13. Artificial Intelligence Usage Disclosure
 
-TODO: tools used, tasks assisted, how you verified (build from ai_notes.md).
+## 13. Artificial Intelligence Usage Disclosure
+
+**Tool used:** Claude (Anthropic, via claude.ai), which I used throughout the project as a tutor and coding assistant.
+
+**What I used AI for:**
+- **Planning:** I pasted the assessment specification into Claude and used it to make sure I understood the whole task: the requirements, marking, hurdles and project options. It helped me choose the project and build a master plan of small milestones, so I could develop the project step by step with a clean commit history.
+- **Code:** I asked Claude to set up the skeleton of each file first (`dataset.py`, `modules.py`, `train.py`, `predict.py`), then give me the code in small blocks. For each block I added it, ran its test and committed it before moving on, rather than copying in a whole finished file. This included building the DCGAN and WGAN-GP models, the training loop, the Slurm scripts and the evaluation.
+- **Understanding:** I asked Claude to explain every part of the code and the ideas behind it (how GANs work, the difference between DCGAN and WGAN-GP, the Wasserstein loss, the gradient penalty and SSIM) until I could explain them in my own words.
+- **Debugging:** when something broke, such as a missing import, a function not returning a value, a job accidentally running on the Rangpur login node, or editing the shared README instead of mine, I pasted the error into Claude and worked through the fix.
+- **Writing:** Claude helped me work out exactly what the README and feasibility review needed to contain, provided a skeleton and drafts, and I rewrote them in my own words. I also used Grammarly to proofread the final README.
+
+**How I checked the AI's work:**
+- **Data:** I audited the dataset myself with shell commands (counting slices, scans and patients, and checking no patient appeared in more than one split) before trusting the loader, which also checks this with an assertion. I visually checked a preview of the loaded slices.
+- **Models:** every block came with a test that I ran (output shapes, value ranges, gradients reaching the generator, parameter counts), and I went through the model code with Claude until I understood each layer.
+- **Training:** I smoke-tested both models locally on a small subset before every full run. Two identical smoke runs confirmed the seeding makes results reproducible, and I checked the full runs actually used the GPU.
+- **Metrics:** I ran a self-test of the SSIM function (an image compared with itself scores 1.0, random noise about 0.05). Every number in this README comes from my own run outputs.
+- **Results:** I looked at every figure myself and didn't just accept the first result. The first memorisation check suggested WGAN-GP was copying training images, but the samples it flagged looked nothing like their matches, so I added extra checks, which showed the result was caused by blur, not copying.
+
+**Where the AI's output needed correcting:**
+- Some shell commands it gave me included `#` comments, which broke when pasted into my terminal (zsh), so I re-ran them without the comments.
+- Its first fidelity measure compared each sample with only one nearest training slice. We refined it to the best match among the 20 nearest.
+- An early claim that WGAN-GP trained about 5× slower was corrected to about 10× per epoch once the full-run timings were compared fairly.
+- An early draft of my feasibility review said I had hand-calculated the parameter counts, which I hadn't, so I removed it.
