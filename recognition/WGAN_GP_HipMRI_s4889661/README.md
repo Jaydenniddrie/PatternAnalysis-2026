@@ -165,46 +165,20 @@ DCGAN (uncurated):
 WGAN-GP (uncurated):
 ![WGAN-GP samples](images/uncurated_wgangp.png)
 
-All three grids are unselected (fixed seeds, no cherry-picking) and use the
-same display orientation. Real slices show the bladder top-centre, round
-femoral heads either side, crisp tissue boundaries and a clean black
-background. Both GANs reproduce the coarse layout (body outline, bladder,
-dark background) and generate varied anatomy with no obvious mode collapse,
-but they fail in different ways:
+All three grids are unselected (fixed seeds, no cherry-picking) and use the same display orientation. Real slices show the bladder top-centre, round femoral heads either side, crisp tissue boundaries and a clean black background. Both GANs reproduce the coarse layout (body outline, bladder, dark background) and generate varied anatomy with no obvious mode collapse, but they fail in different ways:
 
-- **DCGAN** samples are sharper but more chaotic: the bladder is sometimes
-  off-centre or oversized, anatomy is often asymmetric, tissue texture is
-  jagged, and some samples have speckle artefacts in the background.
-- **WGAN-GP** samples are more anatomically coherent (bladder consistently
-  top-centre, more left/right symmetry, clean backgrounds) but blurrier and
-  lower in contrast. Its brightest pixel reaches 0.73 versus about 0.9 for
-  DCGAN and real data, so bright structures such as the bladder are
-  under-produced.
+- **DCGAN** samples are sharper but more chaotic: the bladder is sometimes off-centre or oversized, anatomy is often asymmetric, tissue texture is jagged, and some samples have speckle artefacts in the background.
+- **WGAN-GP** samples are more anatomically coherent (bladder consistently top-centre, more left/right symmetry, clean backgrounds) but blurrier and lower in contrast. Its brightest pixel reaches 0.73 versus about 0.9 for DCGAN and real data, so bright structures such as the bladder are under-produced.
 - **Neither** model reliably produces the femoral heads.
-
-In short, WGAN-GP trades sharpness for structural coherence.
 
 ### 7.2 Training behaviour
 
 ![DCGAN loss curves](images/loss_curves_dcgan.png)
 ![WGAN-GP loss curves](images/loss_curves_wgangp.png)
 
-**DCGAN:** the discriminator dominated for the whole run. Its mean
-confidence on real slices rose from 0.83 to 0.95 while its confidence on
-fakes fell from 0.19 to 0.05, the generator loss rose after about epoch 18,
-and the discriminator loss spiked at epochs 27 and 30. This is the classic
-DCGAN failure mode: a saturated discriminator gives the generator weak
-gradients. Because DCGAN losses do not track image quality, the curves
-alone cannot show whether samples improved.
+**DCGAN:** the discriminator dominated for the whole run. Its mean confidence on real slices rose from 0.83 to 0.95 while its confidence on fakes fell from 0.19 to 0.05, the generator loss rose after about epoch 18, and the discriminator loss spiked at epochs 27 and 30. This is the classic DCGAN failure mode: a saturated discriminator gives the generator weak gradients. Because DCGAN losses do not track image quality, the curves alone cannot show whether samples improved.
 
-**WGAN-GP:** training was smooth, with no spikes, and the gradient penalty
-stayed steady at 0.18–0.31, showing the critic remained smooth. The
-Wasserstein estimate dipped to 8.6 at epoch 2, then rose and plateaued at
-about 14.7. This is ambiguous: the estimate depends on how good the critic
-is, so it can rise as the critic sharpens even while the generator
-improves. A plateau may also mean the generator had stopped improving by
-epoch 30. The absolute value of the WGAN generator loss is arbitrary
-(critic scores can shift by a constant), so it is not interpreted.
+**WGAN-GP:** training was smooth, with no spikes, and the gradient penalty stayed steady at 0.18–0.31, showing the critic remained smooth. The Wasserstein estimate dipped to 8.6 at epoch 2, then rose and plateaued at about 14.7. This is ambiguous: the estimate depends on how good the critic is, so it can rise as the critic sharpens even while the generator improves. A plateau may also mean the generator had stopped improving by epoch 30. The absolute value of the WGAN generator loss is arbitrary (critic scores can shift by a constant), so it is not interpreted.
 
 ### 7.3 Quantitative benchmarking
 
@@ -221,21 +195,9 @@ epoch 30. The absolute value of the WGAN generator loss is arbitrary
 | Max SSIM to a train slice | 0.503 | 0.486 | 0.514 |
 | % samples above real 95th pct SSIM (expect ~5%) | 5% | 2.1% | 8.0% |
 
-**Fidelity.** Each generated slice is compared with its most structurally
-similar training slice (the highest SSIM among its 20 nearest training
-slices by pixel distance). WGAN-GP reaches 96% of the real-data reference
-(0.381 vs 0.397), against DCGAN's 91% (0.363). With 512 samples, the
-standard error of each mean is about 0.002, so the gap is consistent, if
-modest. However, WGAN-GP has the **worse tail**: its six worst samples
-score 0.22–0.25 against DCGAN's 0.25–0.26, matching its larger spread
-(± 0.053). It is better on average but less reliable.
+**Fidelity.** Each generated slice is compared with its most structurally similar training slice (the highest SSIM among its 20 nearest training slices by pixel distance). WGAN-GP reaches 96% of the real-data reference (0.381 vs 0.397), against DCGAN's 91% (0.363). With 512 samples, the standard error of each mean is about 0.002, so the gap is consistent, if modest. However, WGAN-GP has the worse tail: its six worst samples score 0.22–0.25 against DCGAN's 0.25–0.26, corresponding to its larger spread (± 0.053). It is better on average but less reliable.
 
-**The 0.6 SSIM target.** Even real scans of unseen patients only reach
-0.397 under this definition, because different patients' anatomy genuinely
-differs, so no training slice matches a new scan closely. The 0.6 target is
-not reachable by real data here, so the models are judged relative to the
-real-data reference rather than the absolute threshold. The specification
-notes the SSIM target is negotiable.
+**The 0.6 SSIM target.** Even real scans of unseen patients only reach 0.397 under this definition, because different patients' anatomy genuinely differs, so no training slice matches a new scan closely. The 0.6 target is not reachable by real data here, so the models are judged relative to the real-data reference rather than the absolute threshold. The specification notes the SSIM target is negotiable.
 
 ### 7.4 Resource profiling
 
@@ -249,21 +211,10 @@ notes the SSIM target is negotiable.
 | Generation time, 512 slices (Mac CPU, mean of 5) | 0.62 s (1.2 ms/slice) | 0.68 s (1.3 ms/slice) |
 | Generation throughput (Mac CPU) | ~820 slices/s | ~750 slices/s |
 
-WGAN-GP was about **10× slower per epoch** (19.5 s vs 1.9 s). It updates
-the critic five times per generator step, and the gradient penalty needs an
-extra backward pass through the critic. It also used about **25% more peak
-memory** (0.34 vs 0.27 GB), because the penalty keeps an additional
-computation graph (`create_graph=True`). Both are tiny for an A100 and far
-inside the 2-hour / 8 GB budget, so compute cost is not a deciding factor
-at this scale. Peak VRAM is PyTorch's allocated tensor memory
-(`torch.cuda.max_memory_allocated`), which excludes the CUDA context
-overhead that `nvidia-smi` would also show. The DCGAN total includes a
-one-off data-cache build, so per-epoch time is the fair comparison.
+WGAN-GP was about 10× slower per epoch (19.5 s vs 1.9 s). It updates the critic five times per generator step, and the gradient penalty needs an extra backward pass through the critic. It also used about 25% more peak memory (0.34 vs 0.27 GB), because the penalty keeps an additional computation graph (`create_graph=True`). Both are tiny for an A100 and far inside the 2-hour / 8 GB budget, so compute cost is not a deciding factor at this scale. Peak VRAM is PyTorch's allocated tensor memory (`torch.cuda.max_memory_allocated`), which excludes the CUDA context overhead that `nvidia-smi` would also show. The DCGAN total includes a one-off data-cache build, so per-epoch time is the fair comparison.
 
-Generation cost is effectively identical, because both models share the
-same generator architecture; the small difference is CPU timing noise.
-A 512-slice synthetic cohort takes under a second on a laptop CPU, so
-WGAN-GP's extra cost is paid once, at training time, not at deployment.
+Generation cost is effectively identical, because both models share the same generator architecture; the small difference is CPU timing noise. A 512-slice synthetic cohort takes under a second on a laptop CPU, so WGAN-GP's extra cost is paid once, at training time, not at deployment.
+
 
 ### 7.5 Memorisation audit
 
@@ -481,8 +432,6 @@ segmentation models (the generator produces no masks).
 3. I. Gulrajani, F. Ahmed, M. Arjovsky, V. Dumoulin, A. Courville, "Improved training of Wasserstein GANs," NeurIPS, 2017.
 4. Z. Wang, A. C. Bovik, H. R. Sheikh, E. P. Simoncelli, "Image quality assessment: from error visibility to structural similarity," IEEE TIP, 2004.
 5. I. Goodfellow et al., "Generative adversarial nets," NeurIPS, 2014.
-
-## 13. Artificial Intelligence Usage Disclosure
 
 ## 13. Artificial Intelligence Usage Disclosure
 
