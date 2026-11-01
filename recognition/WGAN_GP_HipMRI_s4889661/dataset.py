@@ -22,6 +22,9 @@ How the splits are used in this project:
                        memorisation audit (are synthetic images closer to the
                        training set than real unseen patients are?)
 
+No data augmentation is applied: for an unconditional GAN, flips/rotations
+would be learned as part of the data distribution (see README §4).
+
 Usage
 -----
     python dataset.py --root ~/keras_slices_data

@@ -109,6 +109,8 @@ Each full split is cached as a single tensor so training does not re-read around
 - **Test** is the "unseen real patients" reference for the fidelity and memorisation evaluation. It shows how close a genuinely new scan naturally sits to the training data, which is only valid because these patients were never seen in training.
 - **Validate** is not used for model selection: unconditional GAN training has no held-out loss to tune against, so training was monitored with fixed-noise sample grids and loss curves instead.
 
+**No data augmentation.** Augmentation was deliberately not used. For an unconditional GAN, standard augmentations such as flips, rotations or intensity shifts are learned as part of the data distribution, so the generator would also produce flipped or rotated pelvic anatomy that never occurs in real scans. Avoiding this requires differentiable augmentation applied inside the adversarial loop (Karras et al., 2020), which is noted as future work given the small dataset.
+
 
 ## 5. Dependencies and Reproducibility
 
@@ -359,14 +361,13 @@ segmentation models (the generator produces no masks).
 
 ## 12. References
 
-## 12. References
-
 1. M. Arjovsky, S. Chintala, L. Bottou, "Wasserstein generative adversarial networks," in *Proc. ICML*, 2017.
 2. I. Goodfellow et al., "Generative adversarial nets," in *Proc. NeurIPS*, 2014.
 3. I. Gulrajani, F. Ahmed, M. Arjovsky, V. Dumoulin, A. Courville, "Improved training of Wasserstein GANs," in *Proc. NeurIPS*, 2017.
 4. L. G. Nyúl, J. K. Udupa, "On standardizing the MR image intensity scale," *Magnetic Resonance in Medicine*, vol. 42, no. 6, pp. 1072–1081, 1999.
 5. A. Radford, L. Metz, S. Chintala, "Unsupervised representation learning with deep convolutional generative adversarial networks," in *Proc. ICLR*, 2016.
 6. Z. Wang, A. C. Bovik, H. R. Sheikh, E. P. Simoncelli, "Image quality assessment: from error visibility to structural similarity," *IEEE Transactions on Image Processing*, vol. 13, no. 4, pp. 600–612, 2004.
+7. T. Karras, M. Aittala, J. Hellsten, S. Laine, J. Lehtinen, T. Aila, "Training generative adversarial networks with limited data," in *Proc. NeurIPS*, 2020.
 
 ## 13. Artificial Intelligence Usage Disclosure
 
