@@ -216,7 +216,7 @@ All three grids are unselected (fixed seeds, no cherry-picking) and use the same
 
 WGAN-GP was about 10× slower per epoch (19.5 s vs 1.9 s). It updates the critic five times per generator step, and the gradient penalty needs an extra backward pass through the critic. It also used about 25% more peak memory (0.34 vs 0.27 GB), because the penalty keeps an additional computation graph (`create_graph=True`). Both are tiny for an A100 and far inside the 2-hour / 8 GB budget, so compute cost is not a deciding factor at this scale. Peak VRAM is PyTorch's allocated tensor memory (`torch.cuda.max_memory_allocated`), which excludes the CUDA context overhead that `nvidia-smi` would also show. The DCGAN total includes a one-off data-cache build, so per-epoch time is the fair comparison.
 
-Generation cost is effectively identical, because both models share the same generator architecture; the small difference is CPU timing noise. A 512-slice synthetic cohort takes under a second on a laptop CPU, so WGAN-GP's extra cost is paid once, at training time, not at deployment.
+Generation cost is effectively identical, because both models share the same generator architecture. Timings are CPU wall-clock and vary between runs: a repeat run measured 0.42 s (DCGAN) and 0.33 s (WGAN-GP) per 512 slices, reversing the order in the table above, which confirms the difference is timing noise. A 512-slice synthetic cohort takes under a second on a laptop CPU, so WGAN-GP's extra cost is paid once, at training time, not at deployment.
 
 
 ### 7.5 Memorisation audit
