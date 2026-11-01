@@ -5,8 +5,11 @@ Loads the trained DCGAN (baseline) and WGAN-GP generators and produces the
 evidence for the fidelity / memorisation / privacy investigation:
     1. Uncurated sample grids across several random seeds (diversity)
     2. Fidelity: SSIM between generated slices and their closest real slice
-    3. Memorisation audit: nearest-neighbour distances vs unseen test patients
+    3. Memorisation audit: nearest-neighbour distances vs unseen test patients, 
+        with contrast and SSIM confound checks
     4. Latent interpolation between random noise vectors
+    5. Failure candidates: lowest-SSIM samples per model
+    6. Generation runtime
 
 Usage
 -----
@@ -20,19 +23,17 @@ into images/ for the README.
 
 import argparse
 import os
+import time
 
 import matplotlib
 matplotlib.use("Agg")                 # save figures to file; no display needed
 import matplotlib.pyplot as plt
 import numpy as np                    # allowed in predict.py for visualisation
 import torch
+import torch.nn.functional as F
 
 from modules import Generator, Z_DIM, count_params
 from dataset import load_split
-
-import torch.nn.functional as F
-
-import time
 
 
 # =============================================================================
