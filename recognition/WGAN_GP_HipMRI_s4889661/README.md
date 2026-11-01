@@ -121,24 +121,17 @@ Each full split is cached as a single tensor so training does not re-read around
 | numpy | 2.4.6 | 2.3.1 |
 | matplotlib | 3.11.2 | 3.10.3 |
 
-PyTorch 2.14.0 was used on both machines (CUDA 13.0 build on Rangpur); the
-minor numpy and matplotlib differences affect only plotting.
+PyTorch 2.14.0 was used on both machines (CUDA 13.0 build on Rangpur); the minor NumPy and Matplotlib differences affect only plotting.
 
 Install: `pip install torch torchvision nibabel numpy matplotlib`
 
 **Reproducibility.**
-- All hyperparameters are command-line arguments whose defaults are the
-  values used here (see `train.py`); exact Rangpur job settings are in
-  `slurm/`.
-- Random seeds are fixed: 42 for training, 0–3 for sample grids, 1234 for
-  the 512 evaluation samples, 7 for latent interpolation.
-- Two independent DCGAN smoke-test runs produced identical losses,
-  confirming the seeding works. Results on other hardware may differ
-  slightly because some GPU operations are non-deterministic.
-- Training used a single NVIDIA A100 on Rangpur; smoke tests and evaluation
-  ran on an Apple M-series Mac (MPS/CPU).
-- Datasets and trained weights are not included in the repository;
-  `train.py` regenerates the weights from the data.
+- All hyperparameters are command-line arguments whose defaults are the values used here (see `train.py`); exact Rangpur job settings are in `slurm/`.
+- Random seeds are fixed: 42 for training, 0–3 for sample grids, 1234 for the 512 evaluation samples, 7 for latent interpolation.
+- Two independent DCGAN smoke-test runs produced identical losses, confirming the seeding works. Results on other hardware may differ slightly because some GPU operations are non-deterministic.
+- Training used a single NVIDIA A100 on Rangpur; smoke tests and evaluation ran on an Apple M-series Mac (MPS/CPU).
+- Datasets and trained weights are not included in the repository; `train.py` regenerates the weights from the data.
+
 
 ## 6. Usage
 
@@ -158,8 +151,7 @@ python predict.py --root /path/to/keras_slices_data \
     --dcgan runs/dcgan_baseline/generator.pt --wgan runs/wgan_gp/generator.pt
 ```
 
-TODO: one or two sentences on what each script outputs.
-
+`dataset.py` prints the split audit and saves a preview of loaded slices. `train.py` writes `runs/<run-name>/`: per-epoch sample grids, checkpoints, `generator.pt`, `history.json` (metrics, timing and peak VRAM) and `loss_curves.png`. `predict.py` prints the fidelity, memorisation, confound and runtime results and saves every evaluation figure to `figures/`.
 ## 7. Results
 
 ### 7.1 Example inputs and outputs
