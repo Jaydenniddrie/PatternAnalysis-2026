@@ -434,18 +434,54 @@ visual review before release.
 
 | Criterion (from feasibility review) | Outcome |
 |---|---|
-| 1. Fidelity: SSIM > 0.6 | TODO |
-| 2. Memorisation / privacy | TODO |
-| 3. Diversity | TODO |
-| 4. Resource: < 2 h, < 8 GB | TODO |
-| 5. Baseline comparison | TODO |
+| 1. Fidelity: SSIM > 0.6 to closest real slice | **Not met as defined; criterion miscalibrated.** Even real unseen scans only reach 0.397, so 0.6 is unreachable under this definition. Relative to the real reference, WGAN-GP reaches 96% (0.381) and DCGAN 91% (0.363). |
+| 2. Memorisation / privacy | **Met.** No near-copies: max SSIM to any training slice is 0.514 (WGAN-GP) and 0.486 (DCGAN), vs 0.503 for real scans. The L2 flag on WGAN-GP (19.1%) is explained by blur (r = +0.65). Mild SSIM excess for WGAN-GP (8.0% vs ~5% expected). Caveat: reference from only 3 patients. |
+| 3. Diversity: no mode collapse | **Partially met.** No global collapse in the uncurated grids for either model, but DCGAN shows local mode collapse in latent interpolation (pair 2). |
+| 4. Resource: < 2 h, < 8 GB VRAM | **Met.** 130.6 s / 0.27 GB (DCGAN) and 660.8 s / 0.34 GB (WGAN-GP) on an A100. |
+| 5. Baseline comparison on the same split | **Met.** Both models evaluated on the same 512-sample protocol against the same train/test splits. |
 
 ## 10. Engineering Recommendation
 
-TODO: your verdict to the project manager — is the synthetic cohort safe
-and useful? Which model, and why? Is WGAN-GP's extra cost justified? What
-must happen before sharing (quality filtering of the bad tail, structural
-memorisation checks, more training, clinical review)?
+**Verdict: neither synthetic cohort is ready to share without screening,
+but WGAN-GP is the better foundation for continued development.**
+
+**Recommended model: WGAN-GP.** It produced more anatomically coherent
+slices (consistent bladder placement, more symmetry, clean backgrounds),
+came closer to real-data fidelity on average (96% vs 91% of the real SSIM
+reference), trained stably without the discriminator dominance and loss
+spikes seen in DCGAN, and showed no evidence of memorising training
+patients. Its extra cost is justified at this scale: training was about
+10× slower per epoch, but that is 11 minutes versus 2 on one GPU, and
+generation cost is identical (under a second per 512 slices on a laptop
+CPU).
+
+**Why not ready yet.** WGAN-GP's main weakness is blur. Its samples are
+lower in contrast than real scans, it has a worse tail than DCGAN (lowest
+SSIM 0.22), and neither model reliably produces the femoral heads. A
+cohort released as-is would contain detail-poor and anatomically
+incomplete slices that could teach downstream models misleading features.
+
+**Required before any release:**
+1. **Quality gate.** Automatically discard samples below a fidelity
+   threshold calibrated on real data (e.g. below the real 5th-percentile
+   SSIM), then visually review the remainder.
+2. **A stronger privacy audit.** Use structural (SSIM) and feature-based
+   similarity rather than pixel (L2) distance alone, against a larger
+   reference set than the current 3 test patients (e.g. validate + test,
+   7 patients).
+3. **More training and capacity.** Train longer (the Wasserstein estimate
+   had not clearly converged at 30 epochs) and at higher resolution, to
+   recover contrast and fine anatomy such as the femoral heads.
+4. **A downstream utility test.** Check whether adding synthetic slices
+   actually improves a real task, such as pretraining a model later
+   fine-tuned on real labelled data.
+5. **Expert review.** Have a clinician or MR physicist assess anatomical
+   plausibility before any external use.
+
+**Appropriate use now:** internal prototyping only, such as testing data
+pipelines or exploratory pretraining experiments. **Not appropriate:**
+clinical or diagnostic use, external data sharing, or training supervised
+segmentation models (the generator produces no masks).
 
 ## 11. Limitations and Future Work
 
