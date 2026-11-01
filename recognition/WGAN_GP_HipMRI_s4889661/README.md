@@ -222,53 +222,24 @@ Generation cost is effectively identical, because both models share the same gen
 ![WGAN-GP nearest pairs](images/nearest_pairs_wgangp.png)
 ![DCGAN nearest pairs](images/nearest_pairs_dcgan.png)
 
-**Pixel-space (L2) audit.** For each sample, I measured the distance to its
-nearest training slice and compared it with the same distance for real
-unseen test slices. A model behaving like genuinely new data should have
-about 5% of samples closer than the closest 5% of real scans. DCGAN had
-8.8%, but WGAN-GP had **19.1%**, and its histogram is shifted left of the
-real reference. Taken at face value, this is a memorisation warning.
+**Pixel-space (L2) audit.** For each sample, I measured the distance to its nearest training slice and compared it with the same distance for real unseen test slices. A model behaving like genuinely new data should have about 5% of samples closer than the closest 5% of real scans. DCGAN had 8.8%, but WGAN-GP had 19.1%, and its histogram is shifted left of the real reference. Taken at face value, this is a memorisation warning.
 
-**The confound.** The closest WGAN-GP samples are its darkest, blurriest
-outputs, and their "nearest" training slices are clearly different scans,
-with crisp bladder, bone and bowel detail the samples lack. L2 distance
-rewards blur: a smooth, average-looking image sits near many training
-slices without matching any. Nearest-neighbour distance correlates strongly
-with sample contrast (r = +0.65 for WGAN-GP, +0.74 for DCGAN), confirming
-that low-contrast samples score as "close".
+**The confound.** The closest WGAN-GP samples are its darkest, blurriest outputs, and their "nearest" training slices are clearly different scans, with crisp bladder, bone and bowel detail the samples lack. L2 distance rewards blur: a smooth, average-looking image sits near many training slices without matching any. Nearest-neighbour distance is highly correlated with sample contrast (r = +0.65 for WGAN-GP, +0.74 for DCGAN), confirming that low-contrast samples score as "close".
 
-**Structural check.** SSIM, unlike L2, penalises blur. No sample is a
-near-copy: WGAN-GP's maximum SSIM to any training slice is 0.514, against
-0.503 for the best-matching real scan, and far below the roughly 0.9+ an
-actual copy would score. 8.0% of WGAN-GP samples (vs 2.1% for DCGAN) exceed
-the real 95th-percentile SSIM, a mild excess over the expected 5%.
+**Structural check.** SSIM, unlike L2, penalises blur. No sample is a near-copy: WGAN-GP's maximum SSIM to any training slice is 0.514, against 0.503 for the best-matching real scan, and far below the roughly 0.9+ an actual copy would score. 8.0% of WGAN-GP samples (vs 2.1% for DCGAN) exceed the real 95th-percentile SSIM, a mild excess over the expected 5%.
 
-**Conclusion.** There is no evidence of memorisation in either model. The
-L2 flag on WGAN-GP is explained by its blur, which shows that pixel-space
-nearest-neighbour audits must be paired with a structural metric. This was
-the "metric ambiguity" risk predicted in the feasibility review. One
-caveat: the reference comes from only 3 test patients (540 slices), so its
-percentiles are themselves uncertain.
+**Conclusion.** No evidence of memorisation appears in either model. The L2 flag on WGAN-GP is explained by its blur, which shows that pixel-space nearest-neighbour audits must be paired with a structural metric. This was the "metric ambiguity" risk predicted in the feasibility review. One caveat: the reference comes from only 3 test patients (540 slices), so its percentiles are themselves uncertain.
 
 ### 7.6 Latent interpolation
 
 ![Latent interpolation](images/latent_interpolation.png)
 
-Both models interpolate smoothly between random noise vectors, with no
-abrupt jumps. This suggests a continuous learned space rather than a set of
-stored images, which supports the memorisation conclusion. Each row also
-exposed a failure mode the uncurated grids hid:
+Both models interpolate smoothly between random noise vectors, with no abrupt jumps. This suggests a continuous learned space rather than a set of stored images, which supports the memorisation conclusion. Each row also exposed a failure mode the uncurated grids hid:
 
-- **DCGAN pair 1:** the bladder shrinks smoothly, but the final frames
-  dissolve into incoherent texture.
-- **DCGAN pair 2:** almost nothing changes across all eight frames. Two
-  different noise vectors give nearly identical slices, a sign of **local
-  mode collapse**.
-- **WGAN-GP pair 1:** a bladder appears gradually in the anatomically
-  correct position.
-- **WGAN-GP pair 2:** the middle frames lose detail and contrast,
-  regressing to a blurry "average" slice, consistent with the blur found in
-  the audit.
+- **DCGAN pair 1:** the bladder shrinks smoothly, but the final frames dissolve into incoherent texture.
+- **DCGAN pair 2:** almost nothing changes across all eight frames. Two different noise vectors give nearly identical slices, a sign of **local mode collapse**.
+- **WGAN-GP pair 1:** a bladder appears gradually in the anatomically correct position.
+- **WGAN-GP pair 2:** the middle frames lose detail and contrast, regressing to a blurry "average" slice, consistent with the blur found in the audit.
 
 ## 8. Failure Case Autopsy
 
