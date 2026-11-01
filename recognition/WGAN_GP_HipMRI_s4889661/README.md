@@ -4,7 +4,8 @@
 
 ## 1. Problem and Algorithm
 
-Medical AI models for prostate MRI, such as organ segmentation or cancer detection, need large training sets, but real scans are scarce, expensive to acquire and protected by patient-privacy law. The HipMRI 2D dataset used here contains only 38 patients. This project builds a prototype generative model that produces synthetic 2D pelvic MRI slices (128×64) as a possible supplement for pretraining, method development and data sharing. Synthetic data is only useful if it looks anatomically realistic, and only safe to share if it is genuinely new rather than a copy of a real patient’s scan. The project therefore investigates the domain’s fidelity–memorisation–privacy dilemma: it compares a DCGAN baseline with a WGAN-GP model, evaluating both on anatomical fidelity, diversity, memorisation of training patients and computational cost.
+Medical AI models for prostate MRI, such as organ segmentation or cancer detection, need large training sets. Still, real scans are scarce, expensive to acquire and protected by patient privacy laws. The HipMRI 2D dataset used here contains only 38 patients. This project builds a prototype generative model that produces synthetic 2D pelvic MRI slices (128×64) as a possible supplement for pretraining, method development and data sharing. Synthetic data is useful only if it looks anatomically realistic, and safe to share only if it is genuinely new rather than a copy of a real patient's scan. The project therefore investigates the domain's fidelity, memorisation and privacy dilemma: it compares a DCGAN baseline with a WGAN-GP model, evaluating both on anatomical fidelity, diversity, memorisation of training patients and computational expense.
+
 
 ## 2. How It Works
 
