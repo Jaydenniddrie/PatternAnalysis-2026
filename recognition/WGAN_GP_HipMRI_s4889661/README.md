@@ -362,13 +362,21 @@ segmentation models (the generator produces no masks).
 
 ## 12. References
 
-1. M. Arjovsky, S. Chintala, L. Bottou, "Wasserstein generative adversarial networks," in *Proc. ICML*, 2017.
-2. I. Goodfellow et al., "Generative adversarial nets," in *Proc. NeurIPS*, 2014.
-3. I. Gulrajani, F. Ahmed, M. Arjovsky, V. Dumoulin, A. Courville, "Improved training of Wasserstein GANs," in *Proc. NeurIPS*, 2017.
-4. L. G. Nyúl, J. K. Udupa, "On standardizing the MR image intensity scale," *Magnetic Resonance in Medicine*, vol. 42, no. 6, pp. 1072–1081, 1999.
-5. A. Radford, L. Metz, S. Chintala, "Unsupervised representation learning with deep convolutional generative adversarial networks," in *Proc. ICLR*, 2016.
-6. Z. Wang, A. C. Bovik, H. R. Sheikh, E. P. Simoncelli, "Image quality assessment: from error visibility to structural similarity," *IEEE Transactions on Image Processing*, vol. 13, no. 4, pp. 600–612, 2004.
-7. T. Karras, M. Aittala, J. Hellsten, S. Laine, J. Lehtinen, T. Aila, "Training generative adversarial networks with limited data," in *Proc. NeurIPS*, 2020.
+## 12. References
+
+Arjovsky, M., Chintala, S., & Bottou, L. (2017). Wasserstein generative adversarial networks. In *Proceedings of the 34th International Conference on Machine Learning* (Vol. 70, pp. 214–223). PMLR. https://proceedings.mlr.press/v70/arjovsky17a.html
+
+Goodfellow, I., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair, S., Courville, A., & Bengio, Y. (2014). Generative adversarial nets. In *Advances in Neural Information Processing Systems* (Vol. 27, pp. 2672–2680). Curran Associates. https://arxiv.org/abs/1406.2661
+
+Gulrajani, I., Ahmed, F., Arjovsky, M., Dumoulin, V., & Courville, A. (2017). Improved training of Wasserstein GANs. In *Advances in Neural Information Processing Systems* (Vol. 30, pp. 5767–5777). Curran Associates. https://arxiv.org/abs/1704.00028
+
+Karras, T., Aittala, M., Hellsten, J., Laine, S., Lehtinen, J., & Aila, T. (2020). Training generative adversarial networks with limited data. In *Advances in Neural Information Processing Systems* (Vol. 33, pp. 12104–12114). Curran Associates. https://arxiv.org/abs/2006.06676
+
+Nyúl, L. G., & Udupa, J. K. (1999). On standardizing the MR image intensity scale. *Magnetic Resonance in Medicine, 42*(6), 1072–1081. https://onlinelibrary.wiley.com/doi/10.1002/(SICI)1522-2594(199912)42:6%3C1072::AID-MRM11%3E3.0.CO;2-M
+
+Radford, A., Metz, L., & Chintala, S. (2016). Unsupervised representation learning with deep convolutional generative adversarial networks. In *International Conference on Learning Representations*. https://arxiv.org/abs/1511.06434
+
+Wang, Z., Bovik, A. C., Sheikh, H. R., & Simoncelli, E. P. (2004). Image quality assessment: From error visibility to structural similarity. *IEEE Transactions on Image Processing, 13*(4), 600–612. https://ieeexplore.ieee.org/document/1284395
 
 ## 13. Artificial Intelligence Usage Disclosure
 
