@@ -156,11 +156,8 @@ def gradient_penalty(critic, real, fake, device):
 def wgan_gp_step(G, C, real, opt_G, opt_C, z_dim, device, n_critic=5, gp_weight=10.0):
     """One WGAN-GP update: n_critic critic updates, then one generator update.
 
-    Simplification: the same real batch is reused for all critic updates, so
-    the generator gets one update per batch, the same as DCGAN. This keeps
-    generator updates per epoch equal across both models (a fairer
-    comparison), at the cost of differing slightly from Algorithm 1 of
-    Gulrajani et al., which samples a fresh real batch per critic update.
+    Wasserstein critic loss (Arjovsky et al., 2017) with gradient penalty
+    (Gulrajani et al., 2017).
     """
     b = real.size(0)
 
